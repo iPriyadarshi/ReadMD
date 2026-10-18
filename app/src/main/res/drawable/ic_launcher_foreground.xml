@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A simple document glyph with "MD" marks -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Page -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,26 L62,26 L72,36 L72,82 L38,82 Z" />
+    <!-- Folded corner -->
+    <path
+        android:fillColor="#B3D4F5"
+        android:pathData="M62,26 L72,36 L62,36 Z" />
+    <!-- "M" stroke -->
+    <path
+        android:strokeColor="#1B3A5C"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M44,68 L44,54 L50,62 L56,54 L56,68" />
+    <!-- "D" stroke -->
+    <path
+        android:strokeColor="#1B3A5C"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M62,54 L62,68 M62,54 Q69,54 69,61 Q69,68 62,68" />
+</vector>
