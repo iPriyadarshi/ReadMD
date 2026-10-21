@@ -9,6 +9,7 @@ import android.widget.TextView
 import io.noties.markwon.Markwon
 import io.noties.markwon.core.spans.HeadingSpan
 import com.readmd.app.domain.HeadingNode
+import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.ReaderFont
 
 private class SearchSpan(color: Int) : BackgroundColorSpan(color)
@@ -31,6 +32,8 @@ class ReaderTextController {
 
     private var appliedFont: ReaderFont? = null
 
+    private var appliedSpacing: LineSpacing? = null
+
     /** Scroll offset (px) for each heading index; null when unlocatable. */
     private var headingY: List<Float?> = emptyList()
 
@@ -42,6 +45,7 @@ class ReaderTextController {
             textView = tv
             appliedScale = -1
             appliedFont = null
+            appliedSpacing = null
             tv.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
                 refreshHeadingOffsets()
             }
@@ -75,6 +79,13 @@ class ReaderTextController {
             ReaderFont.SERIF -> Typeface.SERIF
             ReaderFont.MONO -> Typeface.MONOSPACE
         }
+    }
+
+    fun applyLineSpacing(spacing: LineSpacing) {
+        val tv = textView ?: return
+        if (spacing == appliedSpacing) return
+        appliedSpacing = spacing
+        tv.setLineSpacing(0f, spacing.multiplier)
     }
 
     /** Scales body text to [percent] of the default size; heading and code sizes follow. */

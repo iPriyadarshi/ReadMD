@@ -9,6 +9,8 @@ import com.readmd.app.ReadMdApp
 import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.MarkdownOutlineParser
+import com.readmd.app.domain.LineSpacing
+import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.TextScale
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +27,8 @@ data class ReaderUiState(
     val rawMode: Boolean = false,
     val textScale: Int = TextScale.DEFAULT,
     val font: ReaderFont = ReaderFont.DEFAULT,
+    val lineSpacing: LineSpacing = LineSpacing.DEFAULT,
+    val pageMargin: PageMargin = PageMargin.DEFAULT,
 )
 
 class ReaderViewModel(
@@ -47,6 +51,24 @@ class ReaderViewModel(
                 _state.update { it.copy(font = font) }
             }
         }
+        viewModelScope.launch {
+            container.recentFiles.lineSpacing.collect { spacing ->
+                _state.update { it.copy(lineSpacing = spacing) }
+            }
+        }
+        viewModelScope.launch {
+            container.recentFiles.pageMargin.collect { margin ->
+                _state.update { it.copy(pageMargin = margin) }
+            }
+        }
+    }
+
+    fun setLineSpacing(spacing: LineSpacing) {
+        viewModelScope.launch { container.recentFiles.setLineSpacing(spacing) }
+    }
+
+    fun setPageMargin(margin: PageMargin) {
+        viewModelScope.launch { container.recentFiles.setPageMargin(margin) }
     }
 
     fun setFont(font: ReaderFont) {
