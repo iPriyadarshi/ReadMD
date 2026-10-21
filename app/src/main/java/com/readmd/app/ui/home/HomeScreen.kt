@@ -13,6 +13,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.background
+import com.readmd.app.domain.NameFilter
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TextField
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -108,11 +119,64 @@ fun HomeScreen(
 
     var themeMenuOpen by remember { mutableStateOf(false) }
 
+    // Live filter of the favorites, recents and folder lists by file name.
+    var nameFilterActive by rememberSaveable { mutableStateOf(false) }
+    var nameQuery by rememberSaveable { mutableStateOf("") }
+    val nameFocus = remember { FocusRequester() }
+    val shownFavorites = remember(favorites, nameQuery) { NameFilter.filter(favorites, nameQuery) { it.name } }
+    val shownRecents = remember(state.recents, nameQuery) { NameFilter.filter(state.recents, nameQuery) { it.name } }
+    LaunchedEffect(nameFilterActive) {
+        if (nameFilterActive) nameFocus.requestFocus()
+    }
+    BackHandler(enabled = nameFilterActive) {
+        nameFilterActive = false
+        nameQuery = ""
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("ReadMD") },
+                title = {
+                    if (nameFilterActive) {
+                        TextField(
+                            value = nameQuery,
+                            onValueChange = { nameQuery = it },
+                            placeholder = { Text("Filter by file name") },
+                            singleLine = true,
+                            trailingIcon = {
+                                if (nameQuery.isNotEmpty()) {
+                                    IconButton(onClick = { nameQuery = "" }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear filter")
+                                    }
+                                }
+                            },
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(nameFocus),
+                        )
+                    } else {
+                        Text("ReadMD")
+                    }
+                },
+                navigationIcon = {
+                    if (nameFilterActive) {
+                        IconButton(onClick = { nameFilterActive = false; nameQuery = "" }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close filter")
+                        }
+                    }
+                },
                 actions = {
+                    if (!nameFilterActive) {
+                        IconButton(onClick = { nameFilterActive = true }) {
+                            Icon(Icons.Default.FilterList, contentDescription = "Filter files by name")
+                        }
+                    }
                     IconButton(onClick = { themeMenuOpen = true }) {
                         Icon(
                             imageVector = when (state.themeMode) {
@@ -350,17 +414,18 @@ fun HomeScreen(
                         )
                     }
                 } else {
-                    if (!folder.scanning && folder.entries.isEmpty()) {
+                    val shownEntries = NameFilter.filter(folder.entries, nameQuery) { it.name }
+                    if (!folder.scanning && shownEntries.isEmpty()) {
                         item {
                             Text(
-                                "No markdown files in this folder",
+                                if (folder.entries.isEmpty()) "No markdown files in this folder" else "No files match",
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
-                    items(folder.entries, key = { "folder-${it.id}" }) { entry ->
+                    items(shownEntries, key = { "folder-${it.id}" }) { entry ->
                         ListItem(
                             headlineContent = { Text(entry.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             modifier = Modifier.clickable { onOpenDoc(entry.id, null) },
@@ -370,7 +435,7 @@ fun HomeScreen(
             }
 
             // Favorites
-            if (favorites.isNotEmpty()) {
+            if (shownFavorites.isNotEmpty()) {
                 item(key = "favorites-header") {
                     Text(
                         "Favorites",
@@ -379,7 +444,7 @@ fun HomeScreen(
                     )
                     HorizontalDivider()
                 }
-                items(favorites, key = { "favorite-${it.id}" }) { favorite ->
+                items(shownFavorites, key = { "favorite-${it.id}" }) { favorite ->
                     ListItem(
                         headlineContent = { Text(favorite.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         leadingContent = { Icon(Icons.Default.Star, contentDescription = null) },
@@ -402,17 +467,17 @@ fun HomeScreen(
                 )
                 HorizontalDivider()
             }
-            if (state.recents.isEmpty()) {
+            if (shownRecents.isEmpty()) {
                 item(key = "recents-empty") {
                     Text(
-                        "Files you read will show up here",
+                        if (state.recents.isEmpty()) "Files you read will show up here" else "No recent files match",
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-            items(state.recents, key = { "recent-${it.id}" }) { recent ->
+            items(shownRecents, key = { "recent-${it.id}" }) { recent ->
                 ListItem(
                     headlineContent = { Text(recent.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     leadingContent = { Icon(Icons.Default.History, contentDescription = null) },
