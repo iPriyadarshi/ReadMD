@@ -49,6 +49,7 @@ fun buildMarkwon(
                 builder.linkResolver { _, link -> onLinkClick(link) }
             }
         })
+        .usePlugin(CalloutPlugin(dark, context.resources.displayMetrics.density))
         .usePlugin(MarkwonInlineParserPlugin.create())
         .usePlugin(
             JLatexMathPlugin.create(mathTextSizePx) { builder ->
