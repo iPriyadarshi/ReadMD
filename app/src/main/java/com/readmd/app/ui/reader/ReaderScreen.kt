@@ -570,6 +570,7 @@ fun ReaderScreen(
                                     )
                                 }
                                 MarkdownText(
+                                    docId = docId,
                                     markdown = state.renderedMarkdown ?: state.markdown ?: "",
                                     headings = state.headings,
                                     controller = controller,

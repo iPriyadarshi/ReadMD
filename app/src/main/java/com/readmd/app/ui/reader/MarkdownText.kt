@@ -30,6 +30,7 @@ import com.readmd.app.domain.ReaderFont
  */
 @Composable
 fun MarkdownText(
+    docId: String,
     markdown: String,
     headings: List<HeadingNode>,
     controller: ReaderTextController,
@@ -54,13 +55,13 @@ fun MarkdownText(
         mathScale = textScale
     }
     val mathColor = contentColor.toArgb()
-    val markwon = remember(dark, mathScale, mathColor) {
+    val markwon = remember(dark, mathScale, mathColor, docId) {
         val sizePx = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_SP,
             ReaderTextController.BASE_TEXT_SIZE_SP * mathScale / 100f,
             context.resources.displayMetrics,
         )
-        buildMarkwon(context, dark, sizePx, mathColor) { currentOnLinkClick(it) }
+        buildMarkwon(context, dark, sizePx, mathColor, docId) { currentOnLinkClick(it) }
     }
 
     AndroidView(
