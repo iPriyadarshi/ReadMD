@@ -9,6 +9,7 @@ import com.readmd.app.ReadMdApp
 import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.Bookmark
 import com.readmd.app.domain.CodeWrap
+import com.readmd.app.domain.EditPolicy
 import com.readmd.app.domain.EmojiShortcodes
 import com.readmd.app.domain.Footnotes
 import com.readmd.app.domain.FrontMatter
@@ -25,6 +26,8 @@ import com.readmd.app.domain.ReadingTime
 import com.readmd.app.domain.TableData
 import com.readmd.app.domain.RelativeLink
 import com.readmd.app.domain.TextScale
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -57,6 +60,8 @@ data class ReaderUiState(
     val draft: String = "",
     val saving: Boolean = false,
     val saveError: String? = null,
+    /** When on, edits are written after a pause in typing and when the editor closes. */
+    val autosave: Boolean = true,
     val isFavorite: Boolean = false,
     val bookmarks: List<Bookmark> = emptyList(),
 )
@@ -101,6 +106,11 @@ class ReaderViewModel(
         viewModelScope.launch {
             container.recentFiles.favorites.collect { favorites ->
                 _state.update { it.copy(isFavorite = favorites.any { fav -> fav.id == docId }) }
+            }
+        }
+        viewModelScope.launch {
+            container.recentFiles.autosave.collect { enabled ->
+                _state.update { it.copy(autosave = enabled) }
             }
         }
         viewModelScope.launch {
@@ -227,13 +237,40 @@ class ReaderViewModel(
         }
     }
 
+    private var autosaveJob: Job? = null
+
     fun updateDraft(text: String) {
         _state.update { it.copy(draft = text) }
+        scheduleAutosave()
+    }
+
+    fun setAutosave(enabled: Boolean) {
+        viewModelScope.launch { container.recentFiles.setAutosave(enabled) }
+        _state.update { it.copy(autosave = enabled) }
+        if (enabled) scheduleAutosave() else autosaveJob?.cancel()
+    }
+
+    /** Restarts the idle timer; the file is written once typing has paused. */
+    private fun scheduleAutosave() {
+        autosaveJob?.cancel()
+        if (!_state.value.autosave) return
+        autosaveJob = viewModelScope.launch {
+            delay(EditPolicy.AUTOSAVE_IDLE_MS)
+            val current = _state.value
+            if (EditPolicy.isDirty(current.editing, current.draft, current.markdown)) save()
+        }
     }
 
     /** Leaves the editor, dropping any unsaved changes. */
     fun discardEditing() {
+        autosaveJob?.cancel()
         _state.update { it.copy(editing = false, draft = "", saveError = null) }
+    }
+
+    /** Saves pending edits (used when the app goes to the background) if autosave is on. */
+    fun saveIfAutosaving() {
+        val current = _state.value
+        if (current.autosave && EditPolicy.isDirty(current.editing, current.draft, current.markdown)) save()
     }
 
     fun clearSaveError() {
@@ -256,6 +293,8 @@ class ReaderViewModel(
                         draft = if (thenLeave) "" else it.draft,
                     )
                 }
+                // Typing may have continued while the file was being written.
+                if (!thenLeave && _state.value.draft != text) scheduleAutosave()
             } catch (e: Exception) {
                 _state.update { it.copy(saving = false, saveError = e.message ?: "Couldn't save the file") }
             }

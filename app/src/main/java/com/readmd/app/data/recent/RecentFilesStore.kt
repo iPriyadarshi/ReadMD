@@ -92,6 +92,8 @@ class RecentFilesStore(private val context: Context) {
 
     val codeWrap: Flow<CodeWrap> = dataStore.data.map { CodeWrap.fromId(it[KEY_CODE_WRAP]) }
 
+    val autosave: Flow<Boolean> = dataStore.data.map { it[KEY_AUTOSAVE] ?: true }
+
     val keepScreenOn: Flow<Boolean> = dataStore.data.map { it[KEY_KEEP_SCREEN_ON] ?: false }
 
     val accent: Flow<AccentColor> = dataStore.data.map { AccentColor.fromId(it[KEY_ACCENT]) }
@@ -191,6 +193,10 @@ class RecentFilesStore(private val context: Context) {
         dataStore.edit { it[KEY_CODE_WRAP] = wrap.id }
     }
 
+    suspend fun setAutosave(enabled: Boolean) {
+        dataStore.edit { it[KEY_AUTOSAVE] = enabled }
+    }
+
     suspend fun setKeepScreenOn(enabled: Boolean) {
         dataStore.edit { it[KEY_KEEP_SCREEN_ON] = enabled }
     }
@@ -241,6 +247,7 @@ class RecentFilesStore(private val context: Context) {
         private val KEY_THEME = intPreferencesKey("theme_mode")
         private val KEY_ACCENT = stringPreferencesKey("accent_color")
         private val KEY_CODE_WRAP = stringPreferencesKey("code_wrap")
+        private val KEY_AUTOSAVE = booleanPreferencesKey("autosave")
         private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         private val KEY_FAVORITES = stringSetPreferencesKey("favorite_files")
         private val KEY_BOOKMARKS = stringSetPreferencesKey("bookmarks")
