@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Html
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
@@ -583,6 +584,20 @@ fun ReaderScreen(
                                             }
                                         },
                                     )
+                                    // Printing and saving as PDF share the system print dialog, which
+                                    // lists real printers as well as "Save as PDF".
+                                    DropdownMenuItem(
+                                        text = { Text("Print") },
+                                        enabled = state.markdown != null,
+                                        leadingIcon = { Icon(Icons.Default.Print, contentDescription = null) },
+                                        onClick = {
+                                            moreMenuOpen = false
+                                            val markdown = state.markdown ?: return@DropdownMenuItem
+                                            scope.launch {
+                                                printer.print(state.title, documentHtml.build(docId, state.title, markdown))
+                                            }
+                                        },
+                                    )
                                     DropdownMenuItem(
                                         text = { Text("Save as PDF") },
                                         enabled = state.markdown != null,
@@ -591,7 +606,10 @@ fun ReaderScreen(
                                             moreMenuOpen = false
                                             val markdown = state.markdown ?: return@DropdownMenuItem
                                             scope.launch {
-                                                printer.print(state.title, documentHtml.build(docId, state.title, markdown))
+                                                printer.print(
+                                                    ExportNames.fileName(state.title, "pdf").removeSuffix(".pdf"),
+                                                    documentHtml.build(docId, state.title, markdown),
+                                                )
                                             }
                                         },
                                     )
