@@ -3,6 +3,7 @@ package com.readmd.app.data
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.readmd.app.domain.DocumentStamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -70,6 +71,30 @@ class DocumentRepository(private val context: Context) {
                 // still valid for this session.
             }
         }
+    }
+
+    /**
+     * The document's current modified time and size, or null when they can't be read (bundled
+     * samples, providers that don't report them, files that are gone).
+     */
+    suspend fun stamp(id: String): DocumentStamp? = withContext(Dispatchers.IO) {
+        if (id.startsWith(BUNDLED_PREFIX)) return@withContext null
+        runCatching {
+            resolver.query(
+                Uri.parse(id),
+                arrayOf(
+                    android.provider.DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+                    android.provider.DocumentsContract.Document.COLUMN_SIZE,
+                ),
+                null, null, null,
+            )?.use { c ->
+                if (!c.moveToFirst()) return@use null
+                DocumentStamp(
+                    lastModified = if (c.isNull(0)) null else c.getLong(0),
+                    size = if (c.isNull(1)) null else c.getLong(1),
+                ).takeUnless { it.isEmpty }
+            }
+        }.getOrNull()
     }
 
     /** True for documents that live in a file the user picked (bundled samples are read-only). */

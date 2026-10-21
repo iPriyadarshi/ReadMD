@@ -9,6 +9,7 @@ import com.readmd.app.ReadMdApp
 import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.Bookmark
 import com.readmd.app.domain.CodeWrap
+import com.readmd.app.domain.DocumentStamp
 import com.readmd.app.domain.EditPolicy
 import com.readmd.app.domain.EmojiShortcodes
 import com.readmd.app.domain.Footnotes
@@ -62,6 +63,8 @@ data class ReaderUiState(
     val saveError: String? = null,
     /** When on, edits are written after a pause in typing and when the editor closes. */
     val autosave: Boolean = true,
+    /** Counts silent reloads after the file changed on disk; the screen reacts to each one. */
+    val reloadCount: Int = 0,
     val isFavorite: Boolean = false,
     val bookmarks: List<Bookmark> = emptyList(),
 )
@@ -273,6 +276,33 @@ class ReaderViewModel(
         if (current.autosave && EditPolicy.isDirty(current.editing, current.draft, current.markdown)) save()
     }
 
+    private var knownStamp: DocumentStamp? = null
+
+    /**
+     * Re-reads the document when the file was changed by something else (a sync tool, another
+     * editor). Skipped while editing or saving so nothing the user typed is overwritten, and
+     * our own writes refresh [knownStamp] so they don't trigger a reload.
+     */
+    fun checkForChanges() {
+        val current = _state.value
+        if (current.loading || current.error != null || current.editing || current.saving) return
+        viewModelScope.launch {
+            val now = container.documents.stamp(docId)
+            if (!DocumentStamp.changed(knownStamp, now)) return@launch
+            val latest = _state.value
+            if (latest.editing || latest.saving) return@launch
+            try {
+                val doc = container.documents.read(docId)
+                knownStamp = now
+                if (doc.text != latest.markdown) {
+                    _state.update { it.withDocument(it.title, doc.text).copy(reloadCount = it.reloadCount + 1) }
+                }
+            } catch (_: Exception) {
+                // Keep showing the version we have; the next check tries again.
+            }
+        }
+    }
+
     fun clearSaveError() {
         _state.update { it.copy(saveError = null) }
     }
@@ -286,6 +316,7 @@ class ReaderViewModel(
         viewModelScope.launch {
             try {
                 container.documents.write(docId, text)
+                knownStamp = container.documents.stamp(docId)
                 _state.update {
                     it.withDocument(it.title, text).copy(
                         saving = false,
@@ -332,6 +363,7 @@ class ReaderViewModel(
                 }
                 val doc = container.documents.read(docId)
                 container.recentFiles.recordOpened(doc.id, doc.name)
+                knownStamp = container.documents.stamp(docId)
                 _state.update { it.withDocument(doc.name, doc.text) }
             } catch (e: Exception) {
                 _state.update {
