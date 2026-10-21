@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The bundled sample documents are opened by name (res:welcome, res:cheatsheet) through
+  Resources.getIdentifier, which resource shrinking cannot see, so keep them explicitly.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/welcome,@raw/cheatsheet" />
