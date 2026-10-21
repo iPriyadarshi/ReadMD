@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.readmd.app.R
 import com.readmd.app.domain.SpeechText
 import java.util.Locale
 
@@ -46,7 +47,7 @@ class SpeechController(private val context: Context) {
         total = chunks.size
         position = 0
         if (chunks.isEmpty()) {
-            error = "There is nothing to read aloud"
+            error = context.getString(R.string.speech_nothing)
             return
         }
         state = SpeechState.PLAYING
@@ -93,13 +94,13 @@ class SpeechController(private val context: Context) {
         engine = TextToSpeech(context.applicationContext) { status ->
             main.post {
                 if (status != TextToSpeech.SUCCESS) {
-                    fail("Text-to-speech isn't available on this device")
+                    fail(context.getString(R.string.speech_unavailable))
                     return@post
                 }
                 val tts = engine ?: return@post
                 val language = tts.setLanguage(Locale.getDefault())
                 if (language == TextToSpeech.LANG_MISSING_DATA || language == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    fail("Your language isn't supported by the speech engine")
+                    fail(context.getString(R.string.speech_language))
                     return@post
                 }
                 tts.setOnUtteranceProgressListener(listener)
@@ -145,7 +146,7 @@ class SpeechController(private val context: Context) {
 
         @Deprecated("Deprecated in Java")
         override fun onError(utteranceId: String?) {
-            main.post { fail("Couldn't read the document aloud") }
+            main.post { fail(context.getString(R.string.speech_failed)) }
         }
 
         override fun onStop(utteranceId: String?, interrupted: Boolean) = Unit

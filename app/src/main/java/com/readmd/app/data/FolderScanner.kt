@@ -3,6 +3,7 @@ package com.readmd.app.data
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
+import com.readmd.app.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -61,7 +62,7 @@ class FolderScanner(private val context: Context) {
             )?.use { c ->
                 if (c.moveToFirst() && !c.isNull(0)) c.getString(0) else null
             }
-        }.getOrNull() ?: "Selected folder"
+        }.getOrNull() ?: context.getString(R.string.selected_folder)
     }
 
     private fun scan(

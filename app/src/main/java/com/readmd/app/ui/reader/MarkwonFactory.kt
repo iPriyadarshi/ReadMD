@@ -1,6 +1,7 @@
 package com.readmd.app.ui.reader
 
 import android.content.Context
+import com.readmd.app.R
 import com.readmd.app.domain.CodeCopy
 import com.readmd.app.domain.CodeWrap
 import com.readmd.app.domain.ImageNames
@@ -61,7 +62,7 @@ fun buildMarkwon(
                 // Images that can't be loaded (missing file, no network) leave a named box.
                 .errorHandler { url, _ ->
                     ImagePlaceholderDrawable(
-                        label = "Image not available: ${ImageNames.displayName(url)}",
+                        label = context.getString(R.string.image_not_available, ImageNames.displayName(url)),
                         textSizePx = mathTextSizePx * 0.85f,
                         color = mathColor,
                     )

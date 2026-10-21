@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
                     if (docId != null) {
                         externalDocId.value = docId
                     } else {
-                        Toast.makeText(this@MainActivity, "Nothing to open in the shared content", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, getString(R.string.shared_nothing), Toast.LENGTH_SHORT).show()
                     }
                 }
             }

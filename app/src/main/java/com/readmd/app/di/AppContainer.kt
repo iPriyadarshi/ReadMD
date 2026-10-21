@@ -8,6 +8,9 @@ import com.readmd.app.data.recent.RecentFilesStore
 
 /** Simple manual dependency container (application-scoped). */
 class AppContainer(context: Context) {
+    /** For user-visible messages produced outside composables, so they follow the current language. */
+    val appContext: Context = context.applicationContext
+
     val recentFiles = RecentFilesStore(context)
     val documents = DocumentRepository(context)
     val folderScanner = FolderScanner(context)

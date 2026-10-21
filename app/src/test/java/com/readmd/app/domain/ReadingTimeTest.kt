@@ -1,7 +1,6 @@
 package com.readmd.app.domain
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ReadingTimeTest {
@@ -26,10 +25,4 @@ class ReadingTimeTest {
         assertEquals(5, ReadingTime.minutesLeft(1000, -1f))
     }
 
-    @Test
-    fun `label formats minutes and handles edge cases`() {
-        assertEquals("5 min left", ReadingTime.label(1000, 0f))
-        assertEquals("Finished", ReadingTime.label(1000, 1f))
-        assertNull(ReadingTime.label(0, 0f))
-    }
 }

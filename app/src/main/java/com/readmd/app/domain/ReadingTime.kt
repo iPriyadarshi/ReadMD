@@ -16,11 +16,4 @@ object ReadingTime {
         val remaining = words * (1f - progress.coerceIn(0f, 1f))
         return ceil(remaining / WORDS_PER_MINUTE).toInt()
     }
-
-    /** Short label such as "5 min left", or null when the document has no words. */
-    fun label(words: Int, progress: Float): String? {
-        if (words <= 0) return null
-        val minutes = minutesLeft(words, progress)
-        return if (minutes <= 0) "Finished" else "$minutes min left"
-    }
 }

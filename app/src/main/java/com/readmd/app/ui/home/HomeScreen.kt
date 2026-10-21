@@ -1,5 +1,7 @@
 package com.readmd.app.ui.home
 
+import com.readmd.app.R
+import androidx.compose.ui.res.pluralStringResource
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,6 +25,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TextField
 import androidx.compose.material.icons.filled.FilterList
@@ -154,12 +157,12 @@ fun HomeScreen(
                         TextField(
                             value = nameQuery,
                             onValueChange = { nameQuery = it },
-                            placeholder = { Text("Filter by file name") },
+                            placeholder = { Text(stringResource(R.string.home_filter_hint)) },
                             singleLine = true,
                             trailingIcon = {
                                 if (nameQuery.isNotEmpty()) {
                                     IconButton(onClick = { nameQuery = "" }) {
-                                        Icon(Icons.Default.Close, contentDescription = "Clear filter")
+                                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_clear_filter))
                                     }
                                 }
                             },
@@ -174,20 +177,20 @@ fun HomeScreen(
                                 .focusRequester(nameFocus),
                         )
                     } else {
-                        Text("ReadMD")
+                        Text(stringResource(R.string.app_name))
                     }
                 },
                 navigationIcon = {
                     if (nameFilterActive) {
                         IconButton(onClick = { nameFilterActive = false; nameQuery = "" }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close filter")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_close_filter))
                         }
                     }
                 },
                 actions = {
                     if (!nameFilterActive) {
                         IconButton(onClick = { nameFilterActive = true }) {
-                            Icon(Icons.Default.FilterList, contentDescription = "Filter files by name")
+                            Icon(Icons.Default.FilterList, contentDescription = stringResource(R.string.cd_filter_files))
                         }
                     }
                     IconButton(onClick = { themeMenuOpen = true }) {
@@ -199,7 +202,7 @@ fun HomeScreen(
                                 ThemeMode.SEPIA -> Icons.Default.AutoStories
                                 ThemeMode.BLACK -> Icons.Default.Contrast
                             },
-                            contentDescription = "Theme",
+                            contentDescription = stringResource(R.string.cd_theme),
                         )
                     }
                     DropdownMenu(
@@ -208,7 +211,7 @@ fun HomeScreen(
                     ) {
                         ThemeMode.entries.forEach { mode ->
                             DropdownMenuItem(
-                                text = { Text(mode.label) },
+                                text = { Text(stringResource(mode.labelRes)) },
                                 onClick = {
                                     viewModel.setThemeMode(mode)
                                     themeMenuOpen = false
@@ -217,7 +220,7 @@ fun HomeScreen(
                         }
                         HorizontalDivider()
                         Text(
-                            text = "Accent color",
+                            text = stringResource(R.string.accent_color_title),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -225,7 +228,7 @@ fun HomeScreen(
                         val darkSurface = MaterialTheme.colorScheme.background.luminance() < 0.5f
                         AccentColor.entries.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(option.label) },
+                                text = { Text(stringResource(option.labelRes)) },
                                 onClick = {
                                     viewModel.setAccent(option)
                                     themeMenuOpen = false
@@ -240,7 +243,7 @@ fun HomeScreen(
                                 },
                                 trailingIcon = {
                                     if (option == accent) {
-                                        Icon(Icons.Default.Check, contentDescription = "Selected")
+                                        Icon(Icons.Default.Check, contentDescription = stringResource(R.string.cd_selected))
                                     }
                                 },
                             )
@@ -270,7 +273,7 @@ fun HomeScreen(
                         ) {
                             Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Open file")
+                            Text(stringResource(R.string.open_file))
                         }
                         OutlinedButton(
                             onClick = { folderPicker.launch(null) },
@@ -278,7 +281,7 @@ fun HomeScreen(
                         ) {
                             Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Open folder")
+                            Text(stringResource(R.string.open_folder))
                         }
                     }
                 }
@@ -313,9 +316,9 @@ fun HomeScreen(
                     item(key = "collection-empty") {
                         Text(
                             if (nameQuery.isBlank()) {
-                                "No files here yet. Long-press a file in your recents or folder to add it."
+                                stringResource(R.string.collection_empty_hint)
                             } else {
-                                "No files match"
+                                stringResource(R.string.no_files_match)
                             },
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             style = MaterialTheme.typography.bodyMedium,
@@ -358,10 +361,10 @@ fun HomeScreen(
                                     if (!folderSearchOpen) viewModel.clearSearch()
                                 },
                             ) {
-                                Icon(Icons.Default.Search, contentDescription = "Search in folder")
+                                Icon(Icons.Default.Search, contentDescription = stringResource(R.string.cd_search_in_folder))
                             }
                             IconButton(onClick = { sortMenuOpen = true }) {
-                                Icon(Icons.Default.SwapVert, contentDescription = "Sort files")
+                                Icon(Icons.Default.SwapVert, contentDescription = stringResource(R.string.cd_sort_files))
                             }
                             DropdownMenu(
                                 expanded = sortMenuOpen,
@@ -369,7 +372,7 @@ fun HomeScreen(
                             ) {
                                 FolderSort.entries.forEach { sort ->
                                     DropdownMenuItem(
-                                        text = { Text(sort.label) },
+                                        text = { Text(stringResource(sort.labelRes)) },
                                         onClick = {
                                             viewModel.setFolderSort(sort)
                                             sortMenuOpen = false
@@ -381,9 +384,7 @@ fun HomeScreen(
                         if (!folder.scanning) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = folder.entries.size.let {
-                                        if (it == 1) "1 file" else "$it files"
-                                    },
+                                    text = pluralStringResource(R.plurals.files_count, folder.entries.size, folder.entries.size),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -394,18 +395,18 @@ fun HomeScreen(
                                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                     ) {
                                         Text(
-                                            if (folder.subfoldersScanned == 1) {
-                                                "+1 subfolder"
-                                            } else {
-                                                "+${folder.subfoldersScanned} subfolders"
-                                            },
+                                            pluralStringResource(
+                                                R.plurals.subfolders_added,
+                                                folder.subfoldersScanned,
+                                                folder.subfoldersScanned,
+                                            ),
                                         )
                                     }
                                 }
                                 if (folder.truncated) {
                                     Spacer(Modifier.width(6.dp))
                                     Text(
-                                        "showing first ${folder.entries.size}",
+                                        stringResource(R.string.showing_first, folder.entries.size),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -426,12 +427,12 @@ fun HomeScreen(
                         OutlinedTextField(
                             value = search.query,
                             onValueChange = viewModel::setSearchQuery,
-                            placeholder = { Text("Search file contents") },
+                            placeholder = { Text(stringResource(R.string.search_contents_hint)) },
                             singleLine = true,
                             trailingIcon = {
                                 if (search.query.isNotEmpty()) {
                                     IconButton(onClick = viewModel::clearSearch) {
-                                        Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_clear_search))
                                     }
                                 }
                             },
@@ -452,7 +453,7 @@ fun HomeScreen(
                     if (!search.searching && search.hits.isEmpty()) {
                         item(key = "folder-search-empty") {
                             Text(
-                                "No matches",
+                                stringResource(R.string.no_matches),
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -480,7 +481,7 @@ fun HomeScreen(
                     if (!folder.scanning && shownEntries.isEmpty()) {
                         item {
                             Text(
-                                if (folder.entries.isEmpty()) "No markdown files in this folder" else "No files match",
+                                if (folder.entries.isEmpty()) stringResource(R.string.folder_empty) else stringResource(R.string.no_files_match),
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -503,7 +504,7 @@ fun HomeScreen(
             if (shownFavorites.isNotEmpty()) {
                 item(key = "favorites-header") {
                     Text(
-                        "Favorites",
+                        stringResource(R.string.section_favorites),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
                     )
@@ -515,7 +516,7 @@ fun HomeScreen(
                         leadingContent = { Icon(Icons.Default.Star, contentDescription = null) },
                         trailingContent = {
                             IconButton(onClick = { viewModel.removeFavorite(favorite.id) }) {
-                                Icon(Icons.Default.Close, contentDescription = "Remove from favorites")
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_remove_from_favorites))
                             }
                         },
                         modifier = Modifier.combinedClickable(
@@ -529,7 +530,7 @@ fun HomeScreen(
             // Recents
             item(key = "recents-header") {
                 Text(
-                    "Recent files",
+                    stringResource(R.string.section_recent),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
                 )
@@ -538,7 +539,7 @@ fun HomeScreen(
             if (shownRecents.isEmpty()) {
                 item(key = "recents-empty") {
                     Text(
-                        if (state.recents.isEmpty()) "Files you read will show up here" else "No recent files match",
+                        if (state.recents.isEmpty()) stringResource(R.string.recents_empty) else stringResource(R.string.no_recent_match),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -563,11 +564,11 @@ fun HomeScreen(
                             ) {
                                 Icon(
                                     imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-                                    contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                                    contentDescription = stringResource(if (isFavorite) R.string.cd_remove_from_favorites else R.string.cd_add_to_favorites),
                                 )
                             }
                             IconButton(onClick = { viewModel.removeRecent(recent.id) }) {
-                                Icon(Icons.Default.Close, contentDescription = "Remove from recents")
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_remove_from_recents))
                             }
                         }
                     },
@@ -581,7 +582,7 @@ fun HomeScreen(
             // Samples
             item(key = "samples-header") {
                 Text(
-                    "Sample documents",
+                    stringResource(R.string.section_samples),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
                 )
@@ -602,8 +603,8 @@ fun HomeScreen(
     if (createCollectionOpen || createCollectionFor != null) {
         val forDoc = createCollectionFor
         CollectionNameDialog(
-            title = "New collection",
-            confirmLabel = "Create",
+            title = stringResource(R.string.new_collection),
+            confirmLabel = stringResource(R.string.action_create),
             initial = "",
             collections = collections,
             exceptId = null,
@@ -620,8 +621,8 @@ fun HomeScreen(
     }
     renameTarget?.let { target ->
         CollectionNameDialog(
-            title = "Rename collection",
-            confirmLabel = "Rename",
+            title = stringResource(R.string.rename_collection),
+            confirmLabel = stringResource(R.string.action_rename),
             initial = target.name,
             collections = collections,
             exceptId = target.id,

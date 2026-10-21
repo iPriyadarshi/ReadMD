@@ -92,12 +92,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.readmd.app.R
 import com.readmd.app.ReadMdApp
 import com.readmd.app.domain.Bookmarks
 import com.readmd.app.domain.CodeWrap
@@ -222,14 +224,14 @@ fun ReaderScreen(
 
     // Recomputed only when the label text changes, not on every scroll pixel.
     val scrollState = if (state.rawMode) rawScroll else renderedScroll
-    val timeLeftLabel by remember(state.wordCount, scrollState) {
+    val timeLeftMinutes by remember(state.wordCount, scrollState) {
         derivedStateOf {
             val progress = if (scrollState.maxValue > 0) {
                 scrollState.value.toFloat() / scrollState.maxValue
             } else {
                 0f
             }
-            if (state.loading || state.error != null) null else ReadingTime.label(state.wordCount, progress)
+            if (state.loading || state.error != null || state.wordCount <= 0) null else ReadingTime.minutesLeft(state.wordCount, progress)
         }
     }
 
@@ -271,7 +273,7 @@ fun ReaderScreen(
             scope.launch {
                 val html = documentHtml.build(docId, state.title, markdown)
                 val saved = documentHtml.save(destination, html)
-                snackbarHost.showSnackbar(if (saved) "HTML saved" else "Couldn't save the file")
+                snackbarHost.showSnackbar(context.getString(if (saved) R.string.save_html_ok else R.string.save_failed))
             }
         }
     }
@@ -315,7 +317,7 @@ fun ReaderScreen(
             code = code,
             onCopy = {
                 copyToClipboard(context, code)
-                scope.launch { snackbarHost.showSnackbar("Code copied") }
+                scope.launch { snackbarHost.showSnackbar(context.getString(R.string.code_copied)) }
             },
             onDismiss = { codeShown = null },
         )
@@ -369,7 +371,7 @@ fun ReaderScreen(
         if (state.reloadCount == 0) return@LaunchedEffect
         val max = renderedScroll.maxValue
         fractionBeforeReload = if (max > 0) renderedScroll.value.toFloat() / max else 0f
-        snackbarHost.showSnackbar("Document updated")
+        snackbarHost.showSnackbar(context.getString(R.string.document_updated))
     }
     LaunchedEffect(renderedGeneration) {
         val fraction = fractionBeforeReload ?: return@LaunchedEffect
@@ -400,25 +402,25 @@ fun ReaderScreen(
     if (confirmLeaveEditor) {
         AlertDialog(
             onDismissRequest = { confirmLeaveEditor = false },
-            title = { Text("Save changes?") },
-            text = { Text("Your edits to ${state.title} haven't been saved.") },
+            title = { Text(stringResource(R.string.save_changes_title)) },
+            text = { Text(stringResource(R.string.save_changes_message, state.title)) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         confirmLeaveEditor = false
                         viewModel.save(thenLeave = true)
                     },
-                ) { Text("Save") }
+                ) { Text(stringResource(R.string.action_save)) }
             },
             dismissButton = {
                 Row {
-                    TextButton(onClick = { confirmLeaveEditor = false }) { Text("Keep editing") }
+                    TextButton(onClick = { confirmLeaveEditor = false }) { Text(stringResource(R.string.keep_editing)) }
                     TextButton(
                         onClick = {
                             confirmLeaveEditor = false
                             viewModel.discardEditing()
                         },
-                    ) { Text("Discard") }
+                    ) { Text(stringResource(R.string.action_discard)) }
                 }
             },
         )
@@ -445,7 +447,7 @@ fun ReaderScreen(
                 onCopyAnchor = { index ->
                     anchors.getOrNull(index)?.let { anchor ->
                         copyToClipboard(context, anchor)
-                        scope.launch { snackbarHost.showSnackbar("Copied $anchor") }
+                        scope.launch { snackbarHost.showSnackbar(context.getString(R.string.anchor_copied, anchor)) }
                     }
                 },
                 onAddBookmark = {
@@ -456,9 +458,9 @@ fun ReaderScreen(
                         controller.offsetForHeading(i)?.let { heading.text to it }
                     }
                     val label = Bookmarks.labelFor(offsets, y.toFloat())
-                        ?: "Position ${permille / 10}%"
+                        ?: context.getString(R.string.bookmark_position, permille / 10)
                     viewModel.addBookmark(permille, label)
-                    scope.launch { snackbarHost.showSnackbar("Bookmark added") }
+                    scope.launch { snackbarHost.showSnackbar(context.getString(R.string.bookmark_added)) }
                 },
                 onRemoveBookmark = viewModel::removeBookmark,
                 onSelectBookmark = { bookmark ->
@@ -502,14 +504,14 @@ fun ReaderScreen(
                     TopAppBar(
                         title = {
                             Text(
-                                text = if (unsavedChanges) "Editing ${state.title} •" else "Editing ${state.title}",
+                                text = stringResource(if (unsavedChanges) R.string.editing_title_unsaved else R.string.editing_title, state.title),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         },
                         navigationIcon = {
                             IconButton(onClick = { leaveEditor() }) {
-                                Icon(Icons.Default.Close, contentDescription = "Close editor")
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_close_editor))
                             }
                         },
                         actions = {
@@ -522,24 +524,24 @@ fun ReaderScreen(
                                 )
                             } else {
                                 IconButton(onClick = { viewModel.save() }, enabled = unsavedChanges) {
-                                    Icon(Icons.Default.Save, contentDescription = "Save changes")
+                                    Icon(Icons.Default.Save, contentDescription = stringResource(R.string.cd_save_changes))
                                 }
                             }
                             Box {
                                 IconButton(onClick = { editorMenuOpen = true }) {
-                                    Icon(Icons.Default.MoreVert, contentDescription = "Editor options")
+                                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.cd_editor_options))
                                 }
                                 DropdownMenu(
                                     expanded = editorMenuOpen,
                                     onDismissRequest = { editorMenuOpen = false },
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("Autosave") },
+                                        text = { Text(stringResource(R.string.autosave)) },
                                         onClick = { viewModel.setAutosave(!state.autosave) },
                                         trailingIcon = { Switch(checked = state.autosave, onCheckedChange = null) },
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Discard changes") },
+                                        text = { Text(stringResource(R.string.discard_changes)) },
                                         enabled = unsavedChanges,
                                         onClick = {
                                             editorMenuOpen = false
@@ -554,7 +556,7 @@ fun ReaderScreen(
                     TopAppBar(
                         navigationIcon = {
                             IconButton(onClick = { searchActive = false; query = "" }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close search")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_close_search))
                             }
                         },
                         title = {
@@ -564,12 +566,12 @@ fun ReaderScreen(
                                     query = it
                                     currentMatch = 0
                                 },
-                                placeholder = { Text("Search document…") },
+                                placeholder = { Text(stringResource(R.string.search_document_hint)) },
                                 singleLine = true,
                                 trailingIcon = {
                                     if (query.isNotEmpty()) {
                                         IconButton(onClick = { query = ""; currentMatch = 0 }) {
-                                            Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_clear_search))
                                         }
                                     }
                                 },
@@ -603,7 +605,7 @@ fun ReaderScreen(
                                     },
                                     enabled = matches.isNotEmpty(),
                                 ) {
-                                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
+                                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.cd_previous_match))
                                 }
                                 IconButton(
                                     onClick = {
@@ -613,7 +615,7 @@ fun ReaderScreen(
                                     },
                                     enabled = matches.isNotEmpty(),
                                 ) {
-                                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
+                                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.cd_next_match))
                                 }
                             }
                         },
@@ -623,9 +625,13 @@ fun ReaderScreen(
                         title = {
                             Column {
                                 Text(state.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                timeLeftLabel?.let { label ->
+                                timeLeftMinutes?.let { minutes ->
                                     Text(
-                                        text = label,
+                                        text = if (minutes <= 0) {
+                                            stringResource(R.string.reading_finished)
+                                        } else {
+                                            stringResource(R.string.reading_time_left, minutes)
+                                        },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -634,7 +640,7 @@ fun ReaderScreen(
                         },
                         navigationIcon = {
                             IconButton(onClick = onBack) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                             }
                         },
                         actions = {
@@ -642,24 +648,24 @@ fun ReaderScreen(
                                 IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                     Icon(
                                         Icons.AutoMirrored.Filled.FormatListBulleted,
-                                        contentDescription = "Table of contents",
+                                        contentDescription = stringResource(R.string.cd_toc),
                                     )
                                 }
                             }
                             if (canGoForward) {
                                 IconButton(onClick = onForward) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(R.string.cd_forward))
                                 }
                             }
                             IconButton(onClick = viewModel::toggleFavorite) {
                                 Icon(
                                     imageVector = if (state.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-                                    contentDescription = if (state.isFavorite) "Remove from favorites" else "Add to favorites",
+                                    contentDescription = stringResource(if (state.isFavorite) R.string.cd_remove_from_favorites else R.string.cd_add_to_favorites),
                                 )
                             }
                             Box {
                                 IconButton(onClick = { textSizeMenuOpen = true }) {
-                                    Icon(Icons.Default.FormatSize, contentDescription = "Text settings")
+                                    Icon(Icons.Default.FormatSize, contentDescription = stringResource(R.string.cd_text_settings))
                                 }
                                 DropdownMenu(
                                     expanded = textSizeMenuOpen,
@@ -673,7 +679,7 @@ fun ReaderScreen(
                                             onClick = { viewModel.adjustTextScale(-1) },
                                             enabled = state.textScale > TextScale.MIN,
                                         ) {
-                                            Icon(Icons.Default.Remove, contentDescription = "Smaller text")
+                                            Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.cd_smaller_text))
                                         }
                                         Text(
                                             text = "${state.textScale}%",
@@ -685,45 +691,45 @@ fun ReaderScreen(
                                             onClick = { viewModel.adjustTextScale(1) },
                                             enabled = state.textScale < TextScale.MAX,
                                         ) {
-                                            Icon(Icons.Default.Add, contentDescription = "Larger text")
+                                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_larger_text))
                                         }
                                     }
                                     DropdownMenuItem(
-                                        text = { Text("Reset") },
+                                        text = { Text(stringResource(R.string.action_reset)) },
                                         onClick = { viewModel.resetTextScale() },
                                         enabled = state.textScale != TextScale.DEFAULT,
                                     )
                                     ChoiceItems(
-                                        title = "Font",
+                                        title = stringResource(R.string.group_font),
                                         options = ReaderFont.entries,
                                         selected = state.font,
-                                        label = { it.label },
+                                        label = { stringResource(it.labelRes) },
                                         onSelect = viewModel::setFont,
                                     )
                                     ChoiceItems(
-                                        title = "Line spacing",
+                                        title = stringResource(R.string.group_line_spacing),
                                         options = LineSpacing.entries,
                                         selected = state.lineSpacing,
-                                        label = { it.label },
+                                        label = { stringResource(it.labelRes) },
                                         onSelect = viewModel::setLineSpacing,
                                     )
                                     ChoiceItems(
-                                        title = "Code blocks",
+                                        title = stringResource(R.string.group_code_blocks),
                                         options = CodeWrap.entries,
                                         selected = state.codeWrap,
-                                        label = { it.label },
+                                        label = { stringResource(it.labelRes) },
                                         onSelect = viewModel::setCodeWrap,
                                     )
                                     ChoiceItems(
-                                        title = "Margins",
+                                        title = stringResource(R.string.group_margins),
                                         options = PageMargin.entries,
                                         selected = state.pageMargin,
-                                        label = { it.label },
+                                        label = { stringResource(it.labelRes) },
                                         onSelect = viewModel::setPageMargin,
                                     )
                                     HorizontalDivider()
                                     DropdownMenuItem(
-                                        text = { Text("Keep screen on") },
+                                        text = { Text(stringResource(R.string.keep_screen_on)) },
                                         onClick = { viewModel.setKeepScreenOn(!state.keepScreenOn) },
                                         trailingIcon = {
                                             Switch(
@@ -737,18 +743,18 @@ fun ReaderScreen(
                             IconButton(onClick = {
                                 searchActive = true
                             }) {
-                                Icon(Icons.Default.Search, contentDescription = "Search in document")
+                                Icon(Icons.Default.Search, contentDescription = stringResource(R.string.cd_search_document))
                             }
                             Box {
                                 IconButton(onClick = { moreMenuOpen = true }) {
-                                    Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.cd_more_options))
                                 }
                                 DropdownMenu(
                                     expanded = moreMenuOpen,
                                     onDismissRequest = { moreMenuOpen = false },
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("Read aloud") },
+                                        text = { Text(stringResource(R.string.read_aloud)) },
                                         enabled = state.markdown != null && !state.rawMode,
                                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null) },
                                         onClick = {
@@ -757,7 +763,7 @@ fun ReaderScreen(
                                         },
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Edit") },
+                                        text = { Text(stringResource(R.string.edit)) },
                                         enabled = viewModel.canEdit && state.markdown != null,
                                         leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                                         onClick = {
@@ -766,7 +772,7 @@ fun ReaderScreen(
                                         },
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Share text") },
+                                        text = { Text(stringResource(R.string.share_text)) },
                                         enabled = state.markdown != null,
                                         leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
                                         onClick = {
@@ -776,7 +782,7 @@ fun ReaderScreen(
                                                 shareText(context, ShareText.subject(state.title), markdown)
                                             } else {
                                                 scope.launch {
-                                                    snackbarHost.showSnackbar("This document is too large to share as text")
+                                                    snackbarHost.showSnackbar(context.getString(R.string.share_too_large))
                                                 }
                                             }
                                         },
@@ -784,7 +790,7 @@ fun ReaderScreen(
                                     // Printing and saving as PDF share the system print dialog, which
                                     // lists real printers as well as "Save as PDF".
                                     DropdownMenuItem(
-                                        text = { Text("Print") },
+                                        text = { Text(stringResource(R.string.print)) },
                                         enabled = state.markdown != null,
                                         leadingIcon = { Icon(Icons.Default.Print, contentDescription = null) },
                                         onClick = {
@@ -796,7 +802,7 @@ fun ReaderScreen(
                                         },
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Save as PDF") },
+                                        text = { Text(stringResource(R.string.save_as_pdf)) },
                                         enabled = state.markdown != null,
                                         leadingIcon = { Icon(Icons.Default.PictureAsPdf, contentDescription = null) },
                                         onClick = {
@@ -811,7 +817,7 @@ fun ReaderScreen(
                                         },
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Export as HTML") },
+                                        text = { Text(stringResource(R.string.export_html)) },
                                         enabled = state.markdown != null,
                                         leadingIcon = { Icon(Icons.Default.Html, contentDescription = null) },
                                         onClick = {
@@ -824,7 +830,7 @@ fun ReaderScreen(
                             IconButton(onClick = { viewModel.setRawMode(!state.rawMode) }) {
                                 Icon(
                                     Icons.Default.Code,
-                                    contentDescription = if (state.rawMode) "Rendered view" else "Raw markdown",
+                                    contentDescription = stringResource(if (state.rawMode) R.string.cd_rendered_view else R.string.cd_raw_markdown),
                                 )
                             }
                         },
@@ -858,7 +864,7 @@ fun ReaderScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         IconButton(onClick = viewModel::retry) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Retry")
+                            Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.cd_retry))
                         }
                     }
 
@@ -920,7 +926,7 @@ fun ReaderScreen(
                                     onImageClick = { imageShown = it },
                                     onCopyCode = { code ->
                                         copyToClipboard(context, code)
-                                        scope.launch { snackbarHost.showSnackbar("Code copied") }
+                                        scope.launch { snackbarHost.showSnackbar(context.getString(R.string.code_copied)) }
                                     },
                                     codeWrap = state.codeWrap,
                                     onViewCode = { codeShown = it },
@@ -973,14 +979,14 @@ private fun SpeechBar(
             IconButton(onClick = onPlayPause) {
                 Icon(
                     imageVector = if (state == SpeechState.PLAYING) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (state == SpeechState.PLAYING) "Pause reading" else "Resume reading",
+                    contentDescription = stringResource(if (state == SpeechState.PLAYING) R.string.cd_pause_reading else R.string.cd_resume_reading),
                 )
             }
             IconButton(onClick = onStop) {
-                Icon(Icons.Default.Stop, contentDescription = "Stop reading")
+                Icon(Icons.Default.Stop, contentDescription = stringResource(R.string.cd_stop_reading))
             }
             Text(
-                text = "Reading aloud · part ${position + 1} of $total",
+                text = stringResource(R.string.reading_aloud_status, position + 1, total),
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(start = 8.dp),
             )
@@ -1008,7 +1014,7 @@ private fun <T> ChoiceItems(
     title: String,
     options: List<T>,
     selected: T,
-    label: (T) -> String,
+    label: @Composable (T) -> String,
     onSelect: (T) -> Unit,
 ) {
     HorizontalDivider()
@@ -1024,7 +1030,7 @@ private fun <T> ChoiceItems(
             onClick = { onSelect(option) },
             leadingIcon = {
                 if (option == selected) {
-                    Icon(Icons.Default.Check, contentDescription = "Selected")
+                    Icon(Icons.Default.Check, contentDescription = stringResource(R.string.cd_selected))
                 }
             },
         )
@@ -1041,7 +1047,7 @@ private fun shareText(context: android.content.Context, subject: String, text: S
     }
     try {
         context.startActivity(
-            android.content.Intent.createChooser(send, "Share document")
+            android.content.Intent.createChooser(send, context.getString(R.string.share_document_chooser))
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
         )
     } catch (_: android.content.ActivityNotFoundException) {
@@ -1052,7 +1058,7 @@ private fun shareText(context: android.content.Context, subject: String, text: S
 /** Puts [text] on the clipboard exactly as given. */
 private fun copyToClipboard(context: android.content.Context, text: String) {
     val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Code", text))
+    clipboard.setPrimaryClip(android.content.ClipData.newPlainText(context.getString(R.string.clipboard_label_code), text))
 }
 
 /**

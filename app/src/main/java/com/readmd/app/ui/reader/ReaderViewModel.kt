@@ -1,10 +1,12 @@
 package com.readmd.app.ui.reader
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.readmd.app.R
 import com.readmd.app.ReadMdApp
 import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.Bookmark
@@ -192,18 +194,18 @@ class ReaderViewModel(
         if (docId.startsWith(com.readmd.app.data.DocumentRepository.BUNDLED_PREFIX) ||
             !android.provider.DocumentsContract.isTreeUri(uri)
         ) {
-            return LinkResult.Failed("Relative links work for files opened from a folder")
+            return LinkResult.Failed(text(R.string.link_relative_needs_folder))
         }
         val target = RelativeLink.resolve(android.provider.DocumentsContract.getDocumentId(uri), link)
-            ?: return LinkResult.Failed("Can't follow this link: $link")
+            ?: return LinkResult.Failed(text(R.string.link_cannot_follow, link))
         if (!RelativeLink.isMarkdown(target)) {
-            return LinkResult.Failed("Only markdown files can be opened from links")
+            return LinkResult.Failed(text(R.string.link_only_markdown))
         }
         val targetId = android.provider.DocumentsContract.buildDocumentUriUsingTree(uri, target).toString()
         return if (container.documents.exists(targetId)) {
             LinkResult.Open(targetId)
         } else {
-            LinkResult.Failed("File not found: ${link.substringBefore('#')}")
+            LinkResult.Failed(text(R.string.link_file_not_found, link.substringBefore('#')))
         }
     }
 
@@ -278,6 +280,8 @@ class ReaderViewModel(
 
     private var knownStamp: DocumentStamp? = null
 
+    private fun text(@StringRes id: Int, vararg args: Any): String = container.appContext.getString(id, *args)
+
     /**
      * Re-reads the document when the file was changed by something else (a sync tool, another
      * editor). Skipped while editing or saving so nothing the user typed is overwritten, and
@@ -327,7 +331,7 @@ class ReaderViewModel(
                 // Typing may have continued while the file was being written.
                 if (!thenLeave && _state.value.draft != text) scheduleAutosave()
             } catch (e: Exception) {
-                _state.update { it.copy(saving = false, saveError = e.message ?: "Couldn't save the file") }
+                _state.update { it.copy(saving = false, saveError = e.message ?: text(R.string.save_failed)) }
             }
         }
     }
@@ -367,7 +371,7 @@ class ReaderViewModel(
                 _state.update { it.withDocument(doc.name, doc.text) }
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(loading = false, error = e.message ?: "Could not open this file")
+                    it.copy(loading = false, error = e.message ?: text(R.string.error_open_failed))
                 }
             }
         }

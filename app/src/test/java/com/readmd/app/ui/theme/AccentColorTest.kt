@@ -21,7 +21,7 @@ class AccentColorTest {
     @Test
     fun `dark swatches are lighter than light swatches`() {
         AccentColor.entries.forEach {
-            assertTrue(it.label, it.swatch(dark = true).luminance() > it.swatch(dark = false).luminance())
+            assertTrue(it.id, it.swatch(dark = true).luminance() > it.swatch(dark = false).luminance())
         }
     }
 }

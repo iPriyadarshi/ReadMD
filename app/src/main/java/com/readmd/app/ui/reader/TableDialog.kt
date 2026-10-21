@@ -1,5 +1,7 @@
 package com.readmd.app.ui.reader
 
+import com.readmd.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -66,10 +68,10 @@ fun TableDialog(table: TableData, onDismiss: () -> Unit) {
         Surface(modifier = Modifier.fillMaxSize(), color = colors.background) {
             Column(Modifier.fillMaxSize()) {
                 TopAppBar(
-                    title = { Text("Table") },
+                    title = { Text(stringResource(R.string.table_title)) },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close table")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_close_table))
                         }
                     },
                 )
