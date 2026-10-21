@@ -19,13 +19,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,11 +61,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.readmd.app.ReadMdApp
 import com.readmd.app.domain.HeadingNode
+import com.readmd.app.domain.TextScale
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -90,6 +97,7 @@ fun ReaderScreen(
     var searchActive by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var currentMatch by remember { mutableIntStateOf(0) }
+    var textSizeMenuOpen by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
     val renderedText: CharSequence = remember(renderedGeneration) {
@@ -245,6 +253,44 @@ fun ReaderScreen(
                                     )
                                 }
                             }
+                            Box {
+                                IconButton(onClick = { textSizeMenuOpen = true }) {
+                                    Icon(Icons.Default.FormatSize, contentDescription = "Text size")
+                                }
+                                DropdownMenu(
+                                    expanded = textSizeMenuOpen,
+                                    onDismissRequest = { textSizeMenuOpen = false },
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 8.dp),
+                                    ) {
+                                        IconButton(
+                                            onClick = { viewModel.adjustTextScale(-1) },
+                                            enabled = state.textScale > TextScale.MIN,
+                                        ) {
+                                            Icon(Icons.Default.Remove, contentDescription = "Smaller text")
+                                        }
+                                        Text(
+                                            text = "${state.textScale}%",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            modifier = Modifier.width(48.dp),
+                                            textAlign = TextAlign.Center,
+                                        )
+                                        IconButton(
+                                            onClick = { viewModel.adjustTextScale(1) },
+                                            enabled = state.textScale < TextScale.MAX,
+                                        ) {
+                                            Icon(Icons.Default.Add, contentDescription = "Larger text")
+                                        }
+                                    }
+                                    DropdownMenuItem(
+                                        text = { Text("Reset") },
+                                        onClick = { viewModel.resetTextScale() },
+                                        enabled = state.textScale != TextScale.DEFAULT,
+                                    )
+                                }
+                            }
                             IconButton(onClick = {
                                 searchActive = true
                             }) {
@@ -294,7 +340,12 @@ fun ReaderScreen(
                                 Text(
                                     text = state.markdown ?: "",
                                     fontFamily = FontFamily.Monospace,
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodySmall.let {
+                                        it.copy(
+                                            fontSize = it.fontSize * state.textScale / 100f,
+                                            lineHeight = it.lineHeight * state.textScale / 100f,
+                                        )
+                                    },
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -314,6 +365,7 @@ fun ReaderScreen(
                                     headings = state.headings,
                                     controller = controller,
                                     contentColor = MaterialTheme.colorScheme.onSurface,
+                                    textScale = state.textScale,
                                 )
                             }
                         }

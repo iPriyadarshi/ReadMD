@@ -3,6 +3,7 @@ package com.readmd.app.ui.reader
 import android.text.Spannable
 import android.text.Spanned
 import android.text.style.BackgroundColorSpan
+import android.util.TypedValue
 import android.widget.TextView
 import io.noties.markwon.Markwon
 import io.noties.markwon.core.spans.HeadingSpan
@@ -24,6 +25,8 @@ class ReaderTextController {
 
     private var headings: List<HeadingNode> = emptyList()
 
+    private var appliedScale = -1
+
     /** Scroll offset (px) for each heading index; null when unlocatable. */
     private var headingY: List<Float?> = emptyList()
 
@@ -33,6 +36,7 @@ class ReaderTextController {
     fun bind(tv: TextView) {
         if (textView !== tv) {
             textView = tv
+            appliedScale = -1
             tv.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
                 refreshHeadingOffsets()
             }
@@ -54,6 +58,14 @@ class ReaderTextController {
 
     fun applyTextColor(textColor: Int) {
         textView?.setTextColor(textColor)
+    }
+
+    /** Scales body text to [percent] of the default size; heading and code sizes follow. */
+    fun applyTextScale(percent: Int) {
+        val tv = textView ?: return
+        if (percent == appliedScale) return
+        appliedScale = percent
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, BASE_TEXT_SIZE_SP * percent / 100f)
     }
 
     /** Pixel y-offset of a heading inside the rendered text, or null. */
@@ -189,6 +201,7 @@ class ReaderTextController {
     }
 
     private companion object {
+        const val BASE_TEXT_SIZE_SP = 14f
         val WHITESPACE = Regex("\\s+")
     }
 }
