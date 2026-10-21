@@ -1,6 +1,7 @@
 package com.readmd.app.data.recent
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -68,6 +69,8 @@ class RecentFilesStore(private val context: Context) {
     val pageMargin: Flow<PageMargin> =
         dataStore.data.map { PageMargin.fromId(it[KEY_PAGE_MARGIN]) }
 
+    val keepScreenOn: Flow<Boolean> = dataStore.data.map { it[KEY_KEEP_SCREEN_ON] ?: false }
+
     val accent: Flow<AccentColor> = dataStore.data.map { AccentColor.fromId(it[KEY_ACCENT]) }
 
     suspend fun recordOpened(id: String, name: String) {
@@ -97,6 +100,10 @@ class RecentFilesStore(private val context: Context) {
 
     suspend fun setFolderSort(sortId: String) {
         dataStore.edit { it[KEY_FOLDER_SORT] = sortId }
+    }
+
+    suspend fun setKeepScreenOn(enabled: Boolean) {
+        dataStore.edit { it[KEY_KEEP_SCREEN_ON] = enabled }
     }
 
     suspend fun setAccent(accent: AccentColor) {
@@ -144,6 +151,7 @@ class RecentFilesStore(private val context: Context) {
         private val KEY_FOLDER_SORT = stringPreferencesKey("folder_sort")
         private val KEY_THEME = intPreferencesKey("theme_mode")
         private val KEY_ACCENT = stringPreferencesKey("accent_color")
+        private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         private val KEY_TEXT_SCALE = intPreferencesKey("reader_text_scale")
         private val KEY_READER_FONT = stringPreferencesKey("reader_font")
         private val KEY_LINE_SPACING = stringPreferencesKey("reader_line_spacing")
