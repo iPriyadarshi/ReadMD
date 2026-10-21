@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Description
@@ -100,6 +101,7 @@ fun HomeScreen(
                                 ThemeMode.SYSTEM -> Icons.Default.PhoneAndroid
                                 ThemeMode.LIGHT -> Icons.Default.LightMode
                                 ThemeMode.DARK -> Icons.Default.DarkMode
+                                ThemeMode.SEPIA -> Icons.Default.AutoStories
                             },
                             contentDescription = "Theme",
                         )
@@ -108,27 +110,15 @@ fun HomeScreen(
                         expanded = themeMenuOpen,
                         onDismissRequest = { themeMenuOpen = false },
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("System default") },
-                            onClick = {
-                                viewModel.setThemeMode(ThemeMode.SYSTEM)
-                                themeMenuOpen = false
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Light") },
-                            onClick = {
-                                viewModel.setThemeMode(ThemeMode.LIGHT)
-                                themeMenuOpen = false
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Dark") },
-                            onClick = {
-                                viewModel.setThemeMode(ThemeMode.DARK)
-                                themeMenuOpen = false
-                            },
-                        )
+                        ThemeMode.entries.forEach { mode ->
+                            DropdownMenuItem(
+                                text = { Text(mode.label) },
+                                onClick = {
+                                    viewModel.setThemeMode(mode)
+                                    themeMenuOpen = false
+                                },
+                            )
+                        }
                     }
                 },
             )
