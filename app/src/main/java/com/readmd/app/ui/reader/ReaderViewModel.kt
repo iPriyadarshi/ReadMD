@@ -12,6 +12,7 @@ import com.readmd.app.domain.MarkdownOutlineParser
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
+import com.readmd.app.domain.ReadingTime
 import com.readmd.app.domain.TextScale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +30,7 @@ data class ReaderUiState(
     val font: ReaderFont = ReaderFont.DEFAULT,
     val lineSpacing: LineSpacing = LineSpacing.DEFAULT,
     val pageMargin: PageMargin = PageMargin.DEFAULT,
+    val wordCount: Int = 0,
 )
 
 class ReaderViewModel(
@@ -120,6 +122,7 @@ class ReaderViewModel(
                         title = doc.name,
                         markdown = doc.text,
                         headings = MarkdownOutlineParser.parse(doc.text),
+                        wordCount = ReadingTime.wordCount(doc.text),
                     )
                 }
             } catch (e: Exception) {
