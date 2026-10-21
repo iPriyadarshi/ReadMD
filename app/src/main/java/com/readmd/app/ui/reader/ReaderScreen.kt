@@ -69,6 +69,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.readmd.app.ReadMdApp
 import com.readmd.app.domain.HeadingNode
+import com.readmd.app.domain.LineSpacing
+import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.TextScale
 import kotlinx.coroutines.launch
@@ -292,18 +294,27 @@ fun ReaderScreen(
                                         onClick = { viewModel.resetTextScale() },
                                         enabled = state.textScale != TextScale.DEFAULT,
                                     )
-                                    HorizontalDivider()
-                                    ReaderFont.entries.forEach { font ->
-                                        DropdownMenuItem(
-                                            text = { Text(font.label) },
-                                            onClick = { viewModel.setFont(font) },
-                                            leadingIcon = {
-                                                if (font == state.font) {
-                                                    Icon(Icons.Default.Check, contentDescription = "Selected")
-                                                }
-                                            },
-                                        )
-                                    }
+                                    ChoiceItems(
+                                        title = "Font",
+                                        options = ReaderFont.entries,
+                                        selected = state.font,
+                                        label = { it.label },
+                                        onSelect = viewModel::setFont,
+                                    )
+                                    ChoiceItems(
+                                        title = "Line spacing",
+                                        options = LineSpacing.entries,
+                                        selected = state.lineSpacing,
+                                        label = { it.label },
+                                        onSelect = viewModel::setLineSpacing,
+                                    )
+                                    ChoiceItems(
+                                        title = "Margins",
+                                        options = PageMargin.entries,
+                                        selected = state.pageMargin,
+                                        label = { it.label },
+                                        onSelect = viewModel::setPageMargin,
+                                    )
                                 }
                             }
                             IconButton(onClick = {
@@ -365,7 +376,7 @@ fun ReaderScreen(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .verticalScroll(rawScroll)
-                                        .padding(16.dp),
+                                        .padding(horizontal = state.pageMargin.dp.dp, vertical = 16.dp),
                                 )
                             }
                         } else {
@@ -373,7 +384,7 @@ fun ReaderScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .verticalScroll(renderedScroll)
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    .padding(horizontal = state.pageMargin.dp.dp, vertical = 8.dp),
                             ) {
                                 MarkdownText(
                                     markdown = state.markdown ?: "",
@@ -382,6 +393,7 @@ fun ReaderScreen(
                                     contentColor = MaterialTheme.colorScheme.onSurface,
                                     textScale = state.textScale,
                                     font = state.font,
+                                    lineSpacing = state.lineSpacing,
                                 )
                             }
                         }
@@ -389,6 +401,35 @@ fun ReaderScreen(
                 }
             }
         }
+    }
+}
+
+/** A titled group of single-choice menu items with a check mark on [selected]. */
+@Composable
+private fun <T> ChoiceItems(
+    title: String,
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    onSelect: (T) -> Unit,
+) {
+    HorizontalDivider()
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+    )
+    options.forEach { option ->
+        DropdownMenuItem(
+            text = { Text(label(option)) },
+            onClick = { onSelect(option) },
+            leadingIcon = {
+                if (option == selected) {
+                    Icon(Icons.Default.Check, contentDescription = "Selected")
+                }
+            },
+        )
     }
 }
 
