@@ -24,6 +24,77 @@ data class FolderScanResult(
     val truncated: Boolean,
 )
 
+/** One item in a folder, as a document provider describes it. */
+data class TreeChild(
+    val id: String,
+    /** Null when the provider gives the item no name; such items are skipped. */
+    val name: String?,
+    val isDirectory: Boolean,
+    val mimeType: String?,
+    val lastModified: Long,
+)
+
+/** A folder hierarchy that can be listed one level at a time. */
+interface DocumentTree {
+    /** The items directly inside the folder [documentId], or null when it can't be listed. */
+    fun children(documentId: String): List<TreeChild>?
+
+    /** The id under which the item [documentId] is opened (a document uri string). */
+    fun openId(documentId: String): String
+}
+
+/** Which names and types count as markdown documents. */
+object MarkdownFiles {
+    fun matches(name: String, mimeType: String?): Boolean =
+        name.endsWith(".md", ignoreCase = true) ||
+            name.endsWith(".markdown", ignoreCase = true) ||
+            mimeType == "text/markdown" ||
+            mimeType == "text/x-markdown"
+}
+
+/**
+ * Walks a [DocumentTree] depth-first and collects the markdown files in it. Folders that
+ * can't be listed are skipped, a lost permission ends the walk with what was found so far,
+ * and the walk stops once [limit] files are collected so a huge tree can't freeze the UI.
+ */
+class TreeScanner(private val tree: DocumentTree) {
+
+    fun scan(rootId: String, limit: Int): FolderScanResult {
+        val out = ArrayList<FolderEntry>()
+        var subfolders = 0
+        try {
+            walk(rootId, out, limit) { subfolders++ }
+        } catch (_: SecurityException) {
+            // Permission lost; the caller shows whatever was found.
+        }
+        return FolderScanResult(
+            entries = out,
+            subfoldersScanned = subfolders,
+            truncated = out.size >= limit,
+        )
+    }
+
+    private fun walk(documentId: String, out: MutableList<FolderEntry>, limit: Int, onSubfolder: () -> Unit) {
+        if (out.size >= limit) return
+        val children = tree.children(documentId) ?: return
+        for (child in children) {
+            if (out.size >= limit) return
+            val name = child.name ?: continue
+            when {
+                child.isDirectory -> {
+                    onSubfolder()
+                    walk(child.id, out, limit, onSubfolder)
+                }
+                MarkdownFiles.matches(name, child.mimeType) -> out += FolderEntry(
+                    id = tree.openId(child.id),
+                    name = name,
+                    lastModified = child.lastModified,
+                )
+            }
+        }
+    }
+}
+
 /**
  * Recursively lists markdown files under a SAF document tree using
  * DocumentsContract directly (no DocumentFile dependency).
@@ -37,18 +108,7 @@ class FolderScanner(private val context: Context) {
     suspend fun listMarkdown(treeUri: Uri, limit: Int = 300): FolderScanResult =
         withContext(Dispatchers.IO) {
             val root = DocumentsContract.getTreeDocumentId(treeUri)
-            val out = ArrayList<FolderEntry>()
-            var subfolders = 0
-            try {
-                scan(treeUri, root, out, limit) { subfolders++ }
-            } catch (_: SecurityException) {
-                // Permission lost; caller surfaces an empty list + error state.
-            }
-            FolderScanResult(
-                entries = out,
-                subfoldersScanned = subfolders,
-                truncated = out.size >= limit,
-            )
+            TreeScanner(ContentResolverTree(context, treeUri)).scan(root, limit)
         }
 
     /** Display name of the tree root, used as the folder section header. */
@@ -64,17 +124,17 @@ class FolderScanner(private val context: Context) {
             }
         }.getOrNull() ?: context.getString(R.string.selected_folder)
     }
+}
 
-    private fun scan(
-        tree: Uri,
-        documentId: String,
-        out: MutableList<FolderEntry>,
-        limit: Int,
-        onSubfolder: () -> Unit,
-    ) {
-        if (out.size >= limit) return
-        val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, documentId)
-        context.contentResolver.query(
+/** [DocumentTree] over a Storage Access Framework tree uri. */
+private class ContentResolverTree(
+    private val context: Context,
+    private val treeUri: Uri,
+) : DocumentTree {
+
+    override fun children(documentId: String): List<TreeChild>? {
+        val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, documentId)
+        return context.contentResolver.query(
             children,
             arrayOf(
                 DocumentsContract.Document.COLUMN_DOCUMENT_ID,
@@ -84,29 +144,23 @@ class FolderScanner(private val context: Context) {
             ),
             null, null, null,
         )?.use { c ->
-            while (c.moveToNext() && out.size < limit) {
-                val id = c.getString(0)
-                val name = c.getString(1) ?: continue
-                val mime = c.getString(2)
-                val lastModified = if (c.isNull(3)) 0L else c.getLong(3)
-                when {
-                    mime == DocumentsContract.Document.MIME_TYPE_DIR -> {
-                        onSubfolder()
-                        scan(tree, id, out, limit, onSubfolder)
-                    }
-                    isMarkdown(name, mime) -> out += FolderEntry(
-                        id = DocumentsContract.buildDocumentUriUsingTree(tree, id).toString(),
-                        name = name,
-                        lastModified = lastModified,
+            buildList {
+                while (c.moveToNext()) {
+                    val mime = c.getString(2)
+                    add(
+                        TreeChild(
+                            id = c.getString(0),
+                            name = c.getString(1),
+                            isDirectory = mime == DocumentsContract.Document.MIME_TYPE_DIR,
+                            mimeType = mime,
+                            lastModified = if (c.isNull(3)) 0L else c.getLong(3),
+                        ),
                     )
                 }
             }
         }
     }
 
-    private fun isMarkdown(name: String, mime: String?): Boolean =
-        name.endsWith(".md", ignoreCase = true) ||
-            name.endsWith(".markdown", ignoreCase = true) ||
-            mime == "text/markdown" ||
-            mime == "text/x-markdown"
+    override fun openId(documentId: String): String =
+        DocumentsContract.buildDocumentUriUsingTree(treeUri, documentId).toString()
 }

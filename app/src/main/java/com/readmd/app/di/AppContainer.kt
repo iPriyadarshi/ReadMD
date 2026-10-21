@@ -1,6 +1,8 @@
 package com.readmd.app.di
 
 import android.content.Context
+import com.readmd.app.data.AndroidDocumentMessages
+import com.readmd.app.data.AndroidDocumentSource
 import com.readmd.app.data.DocumentRepository
 import com.readmd.app.data.FolderScanner
 import com.readmd.app.data.FolderSearcher
@@ -12,7 +14,7 @@ class AppContainer(context: Context) {
     val appContext: Context = context.applicationContext
 
     val recentFiles = RecentFilesStore(context)
-    val documents = DocumentRepository(context)
+    val documents = DocumentRepository(AndroidDocumentSource(context), AndroidDocumentMessages(context))
     val folderScanner = FolderScanner(context)
     val folderSearcher = FolderSearcher(documents)
 }
