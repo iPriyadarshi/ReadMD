@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -36,6 +38,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
@@ -432,9 +435,30 @@ fun ReaderScreen(
                         }
                     }
                 }
+
+                if (!state.loading && state.error == null) {
+                    ScrollProgressBar(
+                        scroll = if (state.rawMode) rawScroll else renderedScroll,
+                        modifier = Modifier.align(Alignment.TopStart),
+                    )
+                }
             }
         }
     }
+}
+
+/** Thin bar under the app bar showing how far through the document the user has scrolled. */
+@Composable
+private fun ScrollProgressBar(scroll: ScrollState, modifier: Modifier = Modifier) {
+    LinearProgressIndicator(
+        progress = {
+            if (scroll.maxValue > 0) scroll.value.toFloat() / scroll.maxValue else 0f
+        },
+        modifier = modifier
+            .fillMaxWidth()
+            .height(2.dp),
+        drawStopIndicator = {},
+    )
 }
 
 /** A titled group of single-choice menu items with a check mark on [selected]. */
