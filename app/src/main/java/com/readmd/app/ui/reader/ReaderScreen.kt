@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -221,6 +223,10 @@ fun ReaderScreen(
     LaunchedEffect(state.frontMatter.isEmpty()) {
         if (state.frontMatter.isEmpty()) controller.topInset = 0f
     }
+
+    var moreMenuOpen by remember { mutableStateOf(false) }
+    val printer = remember { DocumentPrinter(context) }
+    DisposableEffect(printer) { onDispose { printer.release() } }
 
     var codeShown by remember { mutableStateOf<String?>(null) }
     var tableShown by remember { mutableStateOf<Int?>(null) }
@@ -525,6 +531,26 @@ fun ReaderScreen(
                                 searchActive = true
                             }) {
                                 Icon(Icons.Default.Search, contentDescription = "Search in document")
+                            }
+                            Box {
+                                IconButton(onClick = { moreMenuOpen = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                                }
+                                DropdownMenu(
+                                    expanded = moreMenuOpen,
+                                    onDismissRequest = { moreMenuOpen = false },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Save as PDF") },
+                                        enabled = state.markdown != null,
+                                        leadingIcon = { Icon(Icons.Default.PictureAsPdf, contentDescription = null) },
+                                        onClick = {
+                                            moreMenuOpen = false
+                                            val markdown = state.markdown ?: return@DropdownMenuItem
+                                            scope.launch { printer.print(docId, state.title, markdown) }
+                                        },
+                                    )
+                                }
                             }
                             IconButton(onClick = { viewModel.setRawMode(!state.rawMode) }) {
                                 Icon(
