@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.TextScale
 import com.readmd.app.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +54,9 @@ class RecentFilesStore(private val context: Context) {
     val readerTextScale: Flow<Int> =
         dataStore.data.map { TextScale.clamp(it[KEY_TEXT_SCALE] ?: TextScale.DEFAULT) }
 
+    val readerFont: Flow<ReaderFont> =
+        dataStore.data.map { ReaderFont.fromId(it[KEY_READER_FONT]) }
+
     suspend fun recordOpened(id: String, name: String) {
         dataStore.edit { prefs ->
             val existing = prefs[KEY_RECENTS].orEmpty()
@@ -90,6 +94,10 @@ class RecentFilesStore(private val context: Context) {
         dataStore.edit { it[KEY_TEXT_SCALE] = TextScale.clamp(percent) }
     }
 
+    suspend fun setReaderFont(font: ReaderFont) {
+        dataStore.edit { it[KEY_READER_FONT] = font.id }
+    }
+
     companion object {
         private const val MAX_RECENTS = 20
         private const val DEFAULT_FOLDER_SORT = "NAME_ASC"
@@ -99,5 +107,6 @@ class RecentFilesStore(private val context: Context) {
         private val KEY_FOLDER_SORT = stringPreferencesKey("folder_sort")
         private val KEY_THEME = intPreferencesKey("theme_mode")
         private val KEY_TEXT_SCALE = intPreferencesKey("reader_text_scale")
+        private val KEY_READER_FONT = stringPreferencesKey("reader_font")
     }
 }

@@ -9,6 +9,7 @@ import com.readmd.app.ReadMdApp
 import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.MarkdownOutlineParser
+import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.TextScale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,7 @@ data class ReaderUiState(
     val headings: List<HeadingNode> = emptyList(),
     val rawMode: Boolean = false,
     val textScale: Int = TextScale.DEFAULT,
+    val font: ReaderFont = ReaderFont.DEFAULT,
 )
 
 class ReaderViewModel(
@@ -40,6 +42,15 @@ class ReaderViewModel(
                 _state.update { it.copy(textScale = scale) }
             }
         }
+        viewModelScope.launch {
+            container.recentFiles.readerFont.collect { font ->
+                _state.update { it.copy(font = font) }
+            }
+        }
+    }
+
+    fun setFont(font: ReaderFont) {
+        viewModelScope.launch { container.recentFiles.setReaderFont(font) }
     }
 
     fun retry() = load()
