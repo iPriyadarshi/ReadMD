@@ -103,6 +103,7 @@ import com.readmd.app.domain.Bookmarks
 import com.readmd.app.domain.CodeWrap
 import com.readmd.app.domain.EditPolicy
 import com.readmd.app.domain.ExportNames
+import com.readmd.app.domain.ExternalLinks
 import com.readmd.app.domain.Footnotes
 import com.readmd.app.domain.HeadingAnchors
 import com.readmd.app.domain.LeaveAction
@@ -1054,14 +1055,27 @@ private fun copyToClipboard(context: android.content.Context, text: String) {
     clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Code", text))
 }
 
-/** Hands web, mail and other absolute links to whichever app handles them. */
+/**
+ * Web links open in a Custom Tab (the user's browser shown inside the app, falling back to
+ * the plain browser when none supports tabs); mail, phone and other links go to whichever
+ * app handles them.
+ */
 private fun openExternalLink(context: android.content.Context, link: String) {
-    if (link.startsWith("#")) return
+    if (ExternalLinks.isInPage(link)) return
+    val uri = android.net.Uri.parse(link.trim())
     try {
-        context.startActivity(
-            android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link))
-                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
+        if (ExternalLinks.isWeb(link)) {
+            val tab = androidx.browser.customtabs.CustomTabsIntent.Builder()
+                .setShowTitle(true)
+                .build()
+            tab.intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            tab.launchUrl(context, uri)
+        } else {
+            context.startActivity(
+                android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }
     } catch (_: android.content.ActivityNotFoundException) {
         // No app can open this link; nothing to do.
     }
