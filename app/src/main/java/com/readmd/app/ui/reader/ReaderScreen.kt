@@ -360,6 +360,10 @@ fun ReaderScreen(
                         targetState = state.rawMode,
                         transitionSpec = { fadeIn() togetherWith fadeOut() },
                         label = "reader-mode",
+                        modifier = Modifier.pinchToZoom(
+                            onZoom = viewModel::pinchTextScale,
+                            onEnd = viewModel::commitTextScale,
+                        ),
                     ) { raw ->
                         if (raw) {
                             SelectionContainer {

@@ -22,6 +22,18 @@ class TextScaleTest {
     }
 
     @Test
+    fun `scaled applies the pinch factor and rounds`() {
+        assertEquals(150, TextScale.scaled(100, 1.5f))
+        assertEquals(113, TextScale.scaled(100, 1.125f))
+    }
+
+    @Test
+    fun `scaled stays within bounds`() {
+        assertEquals(TextScale.MAX, TextScale.scaled(150, 5f))
+        assertEquals(TextScale.MIN, TextScale.scaled(100, 0.1f))
+    }
+
+    @Test
     fun `clamp restricts stored values to the supported range`() {
         assertEquals(TextScale.MIN, TextScale.clamp(10))
         assertEquals(TextScale.MAX, TextScale.clamp(999))

@@ -83,6 +83,14 @@ class ReaderViewModel(
 
     fun resetTextScale() = setTextScale(TextScale.DEFAULT)
 
+    /** Live pinch feedback: updates the on-screen scale without persisting it yet. */
+    fun pinchTextScale(zoom: Float) {
+        _state.update { it.copy(textScale = TextScale.scaled(it.textScale, zoom)) }
+    }
+
+    /** Persists the scale reached by a finished pinch gesture. */
+    fun commitTextScale() = setTextScale(_state.value.textScale)
+
     private fun setTextScale(percent: Int) {
         viewModelScope.launch { container.recentFiles.setReaderTextScale(percent) }
     }
