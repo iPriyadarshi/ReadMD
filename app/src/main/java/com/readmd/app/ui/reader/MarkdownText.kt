@@ -26,6 +26,7 @@ fun MarkdownText(
     headings: List<HeadingNode>,
     controller: ReaderTextController,
     contentColor: Color,
+    textScale: Int,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -53,8 +54,9 @@ fun MarkdownText(
         controller.render(markwon, markdown, headings, contentColor.toArgb())
     }
 
-    // Keep text color in sync with theme changes without re-rendering.
+    // Keep text color and size in sync with theme/setting changes without re-rendering.
     SideEffect {
         controller.applyTextColor(contentColor.toArgb())
+        controller.applyTextScale(textScale)
     }
 }
