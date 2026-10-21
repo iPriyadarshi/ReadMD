@@ -27,6 +27,7 @@ import io.noties.prism4j.Prism4j
  * @param mathTextSizePx text size for rendered formulas, matching the body text.
  * @param mathColor color for rendered formulas, matching the body text.
  * @param docId the open document; relative image paths are resolved against its folder.
+ * @param onImageClick receives the address of a tapped image (for the full-screen viewer).
  */
 fun buildMarkwon(
     context: Context,
@@ -34,6 +35,7 @@ fun buildMarkwon(
     mathTextSizePx: Float,
     mathColor: Int,
     docId: String,
+    onImageClick: (String) -> Unit,
     onLinkClick: (String) -> Unit,
 ): Markwon {
     val highlightTheme = if (dark) {
@@ -61,6 +63,7 @@ fun buildMarkwon(
                 builder.imageDestinationProcessor(FolderImageDestinationProcessor(docId))
             }
         })
+        .usePlugin(ImageClickPlugin(onImageClick))
         .usePlugin(CalloutPlugin(dark, context.resources.displayMetrics.density))
         .usePlugin(MarkwonInlineParserPlugin.create())
         .usePlugin(

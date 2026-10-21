@@ -220,6 +220,7 @@ fun ReaderScreen(
         if (state.frontMatter.isEmpty()) controller.topInset = 0f
     }
 
+    var imageShown by remember { mutableStateOf<String?>(null) }
     var diagramShown by remember { mutableStateOf<Int?>(null) }
     val onLinkClick: (String) -> Unit = { link ->
         val diagram = MermaidBlocks.diagramIndex(link)
@@ -245,6 +246,10 @@ fun ReaderScreen(
                 is LinkResult.External -> openExternalLink(context, result.link)
             }
         }
+    }
+
+    imageShown?.let { source ->
+        ImageViewerDialog(source = source, onDismiss = { imageShown = null })
     }
 
     diagramShown?.let { index ->
@@ -579,6 +584,7 @@ fun ReaderScreen(
                                     font = state.font,
                                     lineSpacing = state.lineSpacing,
                                     onLinkClick = onLinkClick,
+                                    onImageClick = { imageShown = it },
                                 )
                             }
                         }
