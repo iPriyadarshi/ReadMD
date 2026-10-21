@@ -11,8 +11,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import android.os.Build
 
-enum class ThemeMode {
-    SYSTEM, LIGHT, DARK;
+/** Persisted by ordinal: append new modes at the end so saved values keep their meaning. */
+enum class ThemeMode(val label: String) {
+    SYSTEM("System default"),
+    LIGHT("Light"),
+    DARK("Dark"),
+    SEPIA("Sepia");
 
     companion object {
         fun fromOrdinal(value: Int): ThemeMode =
@@ -32,6 +36,35 @@ private val DarkColors = darkColorScheme(
     tertiary = Color(0xFF4DB6AC),
 )
 
+// Warm paper tones; body text is #5B4636 on #F4ECD8 (about 7:1 contrast).
+private val SepiaColors = lightColorScheme(
+    primary = Color(0xFF8B5A2B),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFE8D4B0),
+    onPrimaryContainer = Color(0xFF3B2A1A),
+    secondary = Color(0xFF7A6A53),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFE3D3AE),
+    onSecondaryContainer = Color(0xFF3B2A1A),
+    tertiary = Color(0xFF6B7F3A),
+    onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFF0C987),
+    onTertiaryContainer = Color(0xFF3B2A1A),
+    background = Color(0xFFF4ECD8),
+    onBackground = Color(0xFF5B4636),
+    surface = Color(0xFFF4ECD8),
+    onSurface = Color(0xFF5B4636),
+    surfaceVariant = Color(0xFFE8DCC0),
+    onSurfaceVariant = Color(0xFF6B5A47),
+    surfaceContainerLowest = Color(0xFFFAF4E6),
+    surfaceContainerLow = Color(0xFFEFE5CD),
+    surfaceContainer = Color(0xFFEAE0C6),
+    surfaceContainerHigh = Color(0xFFE6DABF),
+    surfaceContainerHighest = Color(0xFFE1D4B8),
+    outline = Color(0xFF8C7A63),
+    outlineVariant = Color(0xFFD3C4A5),
+)
+
 @Composable
 fun ReadMdTheme(
     themeMode: ThemeMode,
@@ -39,12 +72,13 @@ fun ReadMdTheme(
 ) {
     val dark = when (themeMode) {
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
-        ThemeMode.LIGHT -> false
+        ThemeMode.LIGHT, ThemeMode.SEPIA -> false
         ThemeMode.DARK -> true
     }
     val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val context = LocalContext.current
     val colorScheme = when {
+        themeMode == ThemeMode.SEPIA -> SepiaColors
         dark && dynamicColor -> dynamicDarkColorScheme(context)
         !dark && dynamicColor -> dynamicLightColorScheme(context)
         dark -> DarkColors
