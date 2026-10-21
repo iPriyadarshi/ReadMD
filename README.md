@@ -18,6 +18,8 @@ A simple, focused Markdown reader for Android.
 - **Table of contents** — jump to any heading in long documents
 - **In-document search** — find and cycle through matches with highlights
 - **Raw view** — toggle to the original Markdown source
+- **Mermaid diagrams** — a "View diagram" link above each ```` ```mermaid ```` block opens
+  it rendered (bundled mermaid 11.4.1, MIT licensed, works offline)
 - **Themes** — light/dark/system, with dynamic color (Android 12+)
 
 ## Tech stack

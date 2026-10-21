@@ -10,6 +10,7 @@ import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.Bookmark
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.MarkdownOutlineParser
+import com.readmd.app.domain.MermaidBlocks
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
@@ -26,6 +27,10 @@ data class ReaderUiState(
     val error: String? = null,
     val title: String = "",
     val markdown: String? = null,
+    /** [markdown] with "View diagram" links added before mermaid blocks; this is what gets rendered. */
+    val renderedMarkdown: String? = null,
+    /** Source of each mermaid block, indexed by its link. */
+    val diagrams: List<String> = emptyList(),
     val headings: List<HeadingNode> = emptyList(),
     val rawMode: Boolean = false,
     val textScale: Int = TextScale.DEFAULT,
@@ -195,11 +200,14 @@ class ReaderViewModel(
                 }
                 val doc = container.documents.read(docId)
                 container.recentFiles.recordOpened(doc.id, doc.name)
+                val prepared = MermaidBlocks.prepare(doc.text)
                 _state.update {
                     it.copy(
                         loading = false,
                         title = doc.name,
                         markdown = doc.text,
+                        renderedMarkdown = prepared.markdown,
+                        diagrams = prepared.diagrams,
                         headings = MarkdownOutlineParser.parse(doc.text),
                         wordCount = ReadingTime.wordCount(doc.text),
                     )

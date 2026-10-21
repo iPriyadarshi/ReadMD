@@ -85,6 +85,7 @@ import com.readmd.app.domain.Bookmarks
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
+import com.readmd.app.domain.MermaidBlocks
 import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.ReadingPositions
 import com.readmd.app.domain.ReadingTime
@@ -212,13 +213,23 @@ fun ReaderScreen(
     }
 
     val snackbarHost = remember { SnackbarHostState() }
+    var diagramShown by remember { mutableStateOf<Int?>(null) }
     val onLinkClick: (String) -> Unit = { link ->
-        scope.launch {
+        val diagram = MermaidBlocks.diagramIndex(link)
+        if (diagram != null) {
+            diagramShown = diagram
+        } else scope.launch {
             when (val result = viewModel.resolveLink(link)) {
                 is LinkResult.Open -> onOpenLinked(result.docId)
                 is LinkResult.Failed -> snackbarHost.showSnackbar(result.text)
                 is LinkResult.External -> openExternalLink(context, result.link)
             }
+        }
+    }
+
+    diagramShown?.let { index ->
+        state.diagrams.getOrNull(index)?.let { source ->
+            MermaidDialog(source = source, onDismiss = { diagramShown = null })
         }
     }
 
@@ -528,7 +539,7 @@ fun ReaderScreen(
                                     .padding(horizontal = state.pageMargin.dp.dp, vertical = 8.dp),
                             ) {
                                 MarkdownText(
-                                    markdown = state.markdown ?: "",
+                                    markdown = state.renderedMarkdown ?: state.markdown ?: "",
                                     headings = state.headings,
                                     controller = controller,
                                     contentColor = MaterialTheme.colorScheme.onSurface,
