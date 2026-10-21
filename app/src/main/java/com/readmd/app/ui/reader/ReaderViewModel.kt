@@ -8,6 +8,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.readmd.app.ReadMdApp
 import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.Bookmark
+import com.readmd.app.domain.FrontMatter
+import com.readmd.app.domain.FrontMatterEntry
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.MarkdownOutlineParser
 import com.readmd.app.domain.MathMarkup
@@ -32,6 +34,8 @@ data class ReaderUiState(
     val renderedMarkdown: String? = null,
     /** Source of each mermaid block, indexed by its link. */
     val diagrams: List<String> = emptyList(),
+    /** Entries of the document's YAML front matter, shown in a collapsible header. */
+    val frontMatter: List<FrontMatterEntry> = emptyList(),
     val headings: List<HeadingNode> = emptyList(),
     val rawMode: Boolean = false,
     val textScale: Int = TextScale.DEFAULT,
@@ -201,7 +205,10 @@ class ReaderViewModel(
                 }
                 val doc = container.documents.read(docId)
                 container.recentFiles.recordOpened(doc.id, doc.name)
-                val prepared = MermaidBlocks.prepare(doc.text)
+                // Front matter is shown in its own header; everything else (outline, word
+                // count, rendering) works on the body so the YAML never leaks into them.
+                val split = FrontMatter.split(doc.text)
+                val prepared = MermaidBlocks.prepare(split.body)
                 _state.update {
                     it.copy(
                         loading = false,
@@ -209,8 +216,9 @@ class ReaderViewModel(
                         markdown = doc.text,
                         renderedMarkdown = MathMarkup.prepare(prepared.markdown),
                         diagrams = prepared.diagrams,
-                        headings = MarkdownOutlineParser.parse(doc.text),
-                        wordCount = ReadingTime.wordCount(doc.text),
+                        headings = MarkdownOutlineParser.parse(split.body),
+                        wordCount = ReadingTime.wordCount(split.body),
+                        frontMatter = FrontMatter.entries(split.yaml),
                     )
                 }
             } catch (e: Exception) {
