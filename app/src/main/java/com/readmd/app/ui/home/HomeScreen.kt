@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
@@ -102,6 +103,7 @@ fun HomeScreen(
                                 ThemeMode.LIGHT -> Icons.Default.LightMode
                                 ThemeMode.DARK -> Icons.Default.DarkMode
                                 ThemeMode.SEPIA -> Icons.Default.AutoStories
+                                ThemeMode.BLACK -> Icons.Default.Contrast
                             },
                             contentDescription = "Theme",
                         )
