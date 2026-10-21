@@ -92,6 +92,7 @@ import com.readmd.app.domain.Bookmarks
 import com.readmd.app.domain.CodeWrap
 import com.readmd.app.domain.ExportNames
 import com.readmd.app.domain.Footnotes
+import com.readmd.app.domain.HeadingAnchors
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
@@ -230,6 +231,7 @@ fun ReaderScreen(
         if (state.frontMatter.isEmpty()) controller.topInset = 0f
     }
 
+    val anchors = remember(state.headings) { HeadingAnchors.anchors(state.headings) }
     var moreMenuOpen by remember { mutableStateOf(false) }
     val printer = remember { DocumentPrinter(context) }
     val documentHtml = remember { DocumentHtml(context) }
@@ -326,6 +328,12 @@ fun ReaderScreen(
             TocDrawer(
                 headings = state.headings,
                 bookmarks = state.bookmarks,
+                onCopyAnchor = { index ->
+                    anchors.getOrNull(index)?.let { anchor ->
+                        copyToClipboard(context, anchor)
+                        scope.launch { snackbarHost.showSnackbar("Copied $anchor") }
+                    }
+                },
                 onAddBookmark = {
                     val max = renderedScroll.maxValue
                     val y = renderedScroll.value

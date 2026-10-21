@@ -1,6 +1,8 @@
 package com.readmd.app.ui.reader
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -25,11 +27,13 @@ import androidx.compose.ui.unit.dp
 import com.readmd.app.domain.Bookmark
 import com.readmd.app.domain.HeadingNode
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TocDrawer(
     headings: List<HeadingNode>,
     bookmarks: List<Bookmark>,
     onSelect: (Int) -> Unit,
+    onCopyAnchor: (Int) -> Unit,
     onAddBookmark: () -> Unit,
     onSelectBookmark: (Bookmark) -> Unit,
     onRemoveBookmark: (Bookmark) -> Unit,
@@ -40,8 +44,16 @@ fun TocDrawer(
                 Text(
                     text = "Contents",
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 12.dp),
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 2.dp),
                 )
+                if (headings.isNotEmpty()) {
+                    Text(
+                        text = "Long-press a heading to copy its link",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp),
+                    )
+                }
                 HorizontalDivider()
             }
             if (headings.isEmpty()) {
@@ -73,7 +85,10 @@ fun TocDrawer(
                         },
                         modifier = Modifier
                             .padding(start = (heading.level * 10).dp)
-                            .clickable { onSelect(index) },
+                            .combinedClickable(
+                                onClick = { onSelect(index) },
+                                onLongClick = { onCopyAnchor(index) },
+                            ),
                     )
                 }
             }
