@@ -109,6 +109,17 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch { container.recentFiles.remove(id) }
     }
 
+    val favorites = container.recentFiles.favorites
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun addFavorite(id: String, name: String) {
+        viewModelScope.launch { container.recentFiles.addFavorite(id, name) }
+    }
+
+    fun removeFavorite(id: String) {
+        viewModelScope.launch { container.recentFiles.removeFavorite(id) }
+    }
+
     val accent = container.recentFiles.accent
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccentColor.DEFAULT)
 

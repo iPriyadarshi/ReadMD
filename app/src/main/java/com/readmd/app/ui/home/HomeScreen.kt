@@ -35,6 +35,8 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -82,6 +84,8 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val accent by viewModel.accent.collectAsState()
+    val favorites by viewModel.favorites.collectAsState()
+    val favoriteIds = remember(favorites) { favorites.mapTo(HashSet()) { it.id } }
 
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -295,6 +299,30 @@ fun HomeScreen(
                 }
             }
 
+            // Favorites
+            if (favorites.isNotEmpty()) {
+                item(key = "favorites-header") {
+                    Text(
+                        "Favorites",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+                    )
+                    HorizontalDivider()
+                }
+                items(favorites, key = { "favorite-${it.id}" }) { favorite ->
+                    ListItem(
+                        headlineContent = { Text(favorite.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        leadingContent = { Icon(Icons.Default.Star, contentDescription = null) },
+                        trailingContent = {
+                            IconButton(onClick = { viewModel.removeFavorite(favorite.id) }) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove from favorites")
+                            }
+                        },
+                        modifier = Modifier.clickable { onOpenDoc(favorite.id) },
+                    )
+                }
+            }
+
             // Recents
             item(key = "recents-header") {
                 Text(
@@ -319,8 +347,25 @@ fun HomeScreen(
                     headlineContent = { Text(recent.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     leadingContent = { Icon(Icons.Default.History, contentDescription = null) },
                     trailingContent = {
-                        IconButton(onClick = { viewModel.removeRecent(recent.id) }) {
-                            Icon(Icons.Default.Close, contentDescription = "Remove from recents")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val isFavorite = recent.id in favoriteIds
+                            IconButton(
+                                onClick = {
+                                    if (isFavorite) {
+                                        viewModel.removeFavorite(recent.id)
+                                    } else {
+                                        viewModel.addFavorite(recent.id, recent.name)
+                                    }
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                                    contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                                )
+                            }
+                            IconButton(onClick = { viewModel.removeRecent(recent.id) }) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove from recents")
+                            }
                         }
                     },
                     modifier = Modifier.clickable { onOpenDoc(recent.id) },

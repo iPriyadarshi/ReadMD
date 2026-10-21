@@ -32,6 +32,7 @@ data class ReaderUiState(
     val pageMargin: PageMargin = PageMargin.DEFAULT,
     val wordCount: Int = 0,
     val keepScreenOn: Boolean = false,
+    val isFavorite: Boolean = false,
 )
 
 class ReaderViewModel(
@@ -55,6 +56,11 @@ class ReaderViewModel(
             }
         }
         viewModelScope.launch {
+            container.recentFiles.favorites.collect { favorites ->
+                _state.update { it.copy(isFavorite = favorites.any { fav -> fav.id == docId }) }
+            }
+        }
+        viewModelScope.launch {
             container.recentFiles.keepScreenOn.collect { enabled ->
                 _state.update { it.copy(keepScreenOn = enabled) }
             }
@@ -67,6 +73,17 @@ class ReaderViewModel(
         viewModelScope.launch {
             container.recentFiles.pageMargin.collect { margin ->
                 _state.update { it.copy(pageMargin = margin) }
+            }
+        }
+    }
+
+    fun toggleFavorite() {
+        val current = _state.value
+        viewModelScope.launch {
+            if (current.isFavorite) {
+                container.recentFiles.removeFavorite(docId)
+            } else {
+                container.recentFiles.addFavorite(docId, current.title.ifEmpty { docId })
             }
         }
     }
