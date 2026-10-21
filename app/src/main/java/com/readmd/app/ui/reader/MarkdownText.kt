@@ -40,6 +40,7 @@ fun MarkdownText(
     lineSpacing: LineSpacing,
     onLinkClick: (String) -> Unit,
     onImageClick: (String) -> Unit,
+    onCopyCode: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -48,6 +49,7 @@ fun MarkdownText(
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val currentOnLinkClick by rememberUpdatedState(onLinkClick)
     val currentOnImageClick by rememberUpdatedState(onImageClick)
+    val currentOnCopyCode by rememberUpdatedState(onCopyCode)
 
     // Formulas are drawn as images sized when Markwon is built, so rebuild (and re-render)
     // when the text size settles rather than on every step of a pinch gesture.
@@ -66,6 +68,7 @@ fun MarkdownText(
         buildMarkwon(
             context, dark, sizePx, mathColor, docId,
             onImageClick = { currentOnImageClick(it) },
+            onCopyCode = { currentOnCopyCode(it) },
             onLinkClick = { currentOnLinkClick(it) },
         )
     }

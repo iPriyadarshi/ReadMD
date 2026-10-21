@@ -1,6 +1,7 @@
 package com.readmd.app.ui.reader
 
 import android.content.Context
+import com.readmd.app.domain.CodeCopy
 import com.readmd.app.domain.ImageNames
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
@@ -28,6 +29,7 @@ import io.noties.prism4j.Prism4j
  * @param mathColor color for rendered formulas, matching the body text.
  * @param docId the open document; relative image paths are resolved against its folder.
  * @param onImageClick receives the address of a tapped image (for the full-screen viewer).
+ * @param onCopyCode receives the exact text of a code block whose "Copy" link was tapped.
  */
 fun buildMarkwon(
     context: Context,
@@ -36,6 +38,7 @@ fun buildMarkwon(
     mathColor: Int,
     docId: String,
     onImageClick: (String) -> Unit,
+    onCopyCode: (String) -> Unit,
     onLinkClick: (String) -> Unit,
 ): Markwon {
     val highlightTheme = if (dark) {
@@ -43,7 +46,9 @@ fun buildMarkwon(
     } else {
         Prism4jThemeDefault.create()
     }
+    val codeCopy = CodeCopyPlugin()
     return Markwon.builder(context)
+        .usePlugin(codeCopy)
         .usePlugin(
             ImagesPlugin.create()
                 .addSchemeHandler(ContentSchemeHandler(context))
@@ -59,7 +64,14 @@ fun buildMarkwon(
         )
         .usePlugin(object : AbstractMarkwonPlugin() {
             override fun configureConfiguration(builder: MarkwonConfiguration.Builder) {
-                builder.linkResolver { _, link -> onLinkClick(link) }
+                builder.linkResolver { _, link ->
+                    val block = CodeCopy.index(link)
+                    if (block != null) {
+                        codeCopy.blockAt(block)?.let(onCopyCode)
+                    } else {
+                        onLinkClick(link)
+                    }
+                }
                 builder.imageDestinationProcessor(FolderImageDestinationProcessor(docId))
             }
         })
