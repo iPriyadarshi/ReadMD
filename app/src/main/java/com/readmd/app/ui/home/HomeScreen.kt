@@ -12,7 +12,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
+import com.readmd.app.ui.theme.AccentColor
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -74,6 +81,7 @@ fun HomeScreen(
     onOpenDoc: (String) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
+    val accent by viewModel.accent.collectAsState()
 
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -118,6 +126,36 @@ fun HomeScreen(
                                 onClick = {
                                     viewModel.setThemeMode(mode)
                                     themeMenuOpen = false
+                                },
+                            )
+                        }
+                        HorizontalDivider()
+                        Text(
+                            text = "Accent color",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
+                        val darkSurface = MaterialTheme.colorScheme.background.luminance() < 0.5f
+                        AccentColor.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.label) },
+                                onClick = {
+                                    viewModel.setAccent(option)
+                                    themeMenuOpen = false
+                                },
+                                leadingIcon = {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .clip(CircleShape)
+                                            .background(option.swatch(darkSurface)),
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (option == accent) {
+                                        Icon(Icons.Default.Check, contentDescription = "Selected")
+                                    }
                                 },
                             )
                         }
