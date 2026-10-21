@@ -4,6 +4,8 @@ import android.util.Base64
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
@@ -51,11 +53,22 @@ fun ReadMdRoot(
     ReadMdTheme(themeMode = themeMode, accent = accent) {
         val navController = rememberNavController()
 
+        // Documents left via Back, most recent last, so the reader can step forward again.
+        // Cleared whenever the user opens something new.
+        val forward = remember { mutableStateListOf<String>() }
+        fun openReader(docId: String, query: String? = null, keepForward: Boolean = false) {
+            if (!keepForward) forward.clear()
+            val route = "reader/${encodeDocId(docId)}"
+            navController.navigate(
+                if (query.isNullOrEmpty()) route else "$route?q=${encodeDocId(query)}",
+            )
+        }
+
         // Consume documents opened from outside the app (file manager etc.)
         val external = externalDocId.value
         LaunchedEffect(external) {
             if (external != null) {
-                navController.navigate("reader/${encodeDocId(external)}")
+                openReader(external)
                 externalDocId.value = null
             }
         }
@@ -65,12 +78,7 @@ fun ReadMdRoot(
                 val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.factory())
                 HomeScreen(
                     viewModel = homeViewModel,
-                    onOpenDoc = { id, query ->
-                        val route = "reader/${encodeDocId(id)}"
-                        navController.navigate(
-                            if (query.isNullOrEmpty()) route else "$route?q=${encodeDocId(query)}",
-                        )
-                    },
+                    onOpenDoc = { id, query -> openReader(id, query) },
                 )
             }
             composable(
@@ -90,7 +98,15 @@ fun ReadMdRoot(
                 ReaderScreen(
                     docId = docId,
                     initialQuery = initialQuery,
-                    onBack = { navController.popBackStack() },
+                    onBack = {
+                        forward.add(docId)
+                        navController.popBackStack()
+                    },
+                    onOpenLinked = { openReader(it) },
+                    canGoForward = forward.isNotEmpty(),
+                    onForward = {
+                        if (forward.isNotEmpty()) openReader(forward.removeAt(forward.lastIndex), keepForward = true)
+                    },
                 )
             }
         }

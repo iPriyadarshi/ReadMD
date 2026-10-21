@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,13 +33,15 @@ fun MarkdownText(
     textScale: Int,
     font: ReaderFont,
     lineSpacing: LineSpacing,
+    onLinkClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     // Follow the app theme (not the raw system setting) so code-block
     // highlighting and backgrounds match light/dark mode.
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val markwon = remember(dark) { buildMarkwon(context, dark) }
+    val currentOnLinkClick by rememberUpdatedState(onLinkClick)
+    val markwon = remember(dark) { buildMarkwon(context, dark) { currentOnLinkClick(it) } }
 
     AndroidView(
         factory = { ctx ->

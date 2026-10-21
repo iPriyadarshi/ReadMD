@@ -13,6 +13,7 @@ import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.ReadingTime
+import com.readmd.app.domain.RelativeLink
 import com.readmd.app.domain.TextScale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +35,18 @@ data class ReaderUiState(
     val keepScreenOn: Boolean = false,
     val isFavorite: Boolean = false,
 )
+
+/** Outcome of tapping a link in the rendered document. */
+sealed interface LinkResult {
+    /** A markdown file in the same folder; open it as another document. */
+    data class Open(val docId: String) : LinkResult
+
+    /** Not a relative file link (web URL, mail, anchor...); let the system handle it. */
+    data class External(val link: String) : LinkResult
+
+    /** A relative link that can't be followed; show [text] to the user. */
+    data class Failed(val text: String) : LinkResult
+}
 
 class ReaderViewModel(
     private val docId: String,
@@ -108,6 +121,28 @@ class ReaderViewModel(
 
     fun savePosition(permille: Int) {
         viewModelScope.launch { container.recentFiles.saveReadingPosition(docId, permille) }
+    }
+
+    suspend fun resolveLink(link: String): LinkResult {
+        if (!RelativeLink.isRelativeFileLink(link)) return LinkResult.External(link)
+
+        val uri = android.net.Uri.parse(docId)
+        if (docId.startsWith(com.readmd.app.data.DocumentRepository.BUNDLED_PREFIX) ||
+            !android.provider.DocumentsContract.isTreeUri(uri)
+        ) {
+            return LinkResult.Failed("Relative links work for files opened from a folder")
+        }
+        val target = RelativeLink.resolve(android.provider.DocumentsContract.getDocumentId(uri), link)
+            ?: return LinkResult.Failed("Can't follow this link: $link")
+        if (!RelativeLink.isMarkdown(target)) {
+            return LinkResult.Failed("Only markdown files can be opened from links")
+        }
+        val targetId = android.provider.DocumentsContract.buildDocumentUriUsingTree(uri, target).toString()
+        return if (container.documents.exists(targetId)) {
+            LinkResult.Open(targetId)
+        } else {
+            LinkResult.Failed("File not found: ${link.substringBefore('#')}")
+        }
     }
 
     fun retry() = load()
