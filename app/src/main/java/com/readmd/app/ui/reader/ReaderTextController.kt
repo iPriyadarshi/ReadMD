@@ -228,8 +228,9 @@ class ReaderTextController {
         headingY = result
     }
 
-    private companion object {
+    companion object {
+        /** Body text size at 100%; the text size setting scales from here. */
         const val BASE_TEXT_SIZE_SP = 14f
-        val WHITESPACE = Regex("\\s+")
+        private val WHITESPACE = Regex("\\s+")
     }
 }
