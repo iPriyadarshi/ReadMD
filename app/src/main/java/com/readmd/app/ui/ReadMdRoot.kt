@@ -15,6 +15,7 @@ import com.readmd.app.ReadMdApp
 import com.readmd.app.ui.home.HomeScreen
 import com.readmd.app.ui.home.HomeViewModel
 import com.readmd.app.ui.reader.ReaderScreen
+import com.readmd.app.ui.theme.AccentColor
 import com.readmd.app.ui.theme.ReadMdTheme
 import com.readmd.app.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.map
@@ -42,7 +43,10 @@ fun ReadMdRoot(
         .map { ThemeMode.fromOrdinal(it) }
         .collectAsState(initial = ThemeMode.SYSTEM)
 
-    ReadMdTheme(themeMode = themeMode) {
+    val accent by container.recentFiles.accent
+        .collectAsState(initial = AccentColor.DEFAULT)
+
+    ReadMdTheme(themeMode = themeMode, accent = accent) {
         val navController = rememberNavController()
 
         // Consume documents opened from outside the app (file manager etc.)

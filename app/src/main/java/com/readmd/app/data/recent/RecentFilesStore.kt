@@ -11,6 +11,7 @@ import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.ReadingPositions
 import com.readmd.app.domain.TextScale
+import com.readmd.app.ui.theme.AccentColor
 import com.readmd.app.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -67,6 +68,8 @@ class RecentFilesStore(private val context: Context) {
     val pageMargin: Flow<PageMargin> =
         dataStore.data.map { PageMargin.fromId(it[KEY_PAGE_MARGIN]) }
 
+    val accent: Flow<AccentColor> = dataStore.data.map { AccentColor.fromId(it[KEY_ACCENT]) }
+
     suspend fun recordOpened(id: String, name: String) {
         dataStore.edit { prefs ->
             val existing = prefs[KEY_RECENTS].orEmpty()
@@ -94,6 +97,10 @@ class RecentFilesStore(private val context: Context) {
 
     suspend fun setFolderSort(sortId: String) {
         dataStore.edit { it[KEY_FOLDER_SORT] = sortId }
+    }
+
+    suspend fun setAccent(accent: AccentColor) {
+        dataStore.edit { it[KEY_ACCENT] = accent.id }
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
@@ -136,6 +143,7 @@ class RecentFilesStore(private val context: Context) {
         private val KEY_FOLDER = stringPreferencesKey("folder_tree_uri")
         private val KEY_FOLDER_SORT = stringPreferencesKey("folder_sort")
         private val KEY_THEME = intPreferencesKey("theme_mode")
+        private val KEY_ACCENT = stringPreferencesKey("accent_color")
         private val KEY_TEXT_SCALE = intPreferencesKey("reader_text_scale")
         private val KEY_READER_FONT = stringPreferencesKey("reader_font")
         private val KEY_LINE_SPACING = stringPreferencesKey("reader_line_spacing")

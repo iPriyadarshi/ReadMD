@@ -9,6 +9,8 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import android.os.Build
 
@@ -78,9 +80,22 @@ private fun ColorScheme.toTrueBlack() = copy(
     surfaceContainerHighest = Color(0xFF1C1C1C),
 )
 
+/** Replaces the primary color with [accent] and derives matching on/container colors. */
+private fun ColorScheme.withAccent(accent: Color, dark: Boolean): ColorScheme {
+    val container = lerp(accent, if (dark) Color.Black else Color.White, 0.75f)
+    return copy(
+        primary = accent,
+        onPrimary = if (accent.luminance() > 0.5f) Color.Black else Color.White,
+        primaryContainer = container,
+        onPrimaryContainer = if (dark) Color.White else Color.Black,
+        surfaceTint = accent,
+    )
+}
+
 @Composable
 fun ReadMdTheme(
     themeMode: ThemeMode,
+    accent: AccentColor = AccentColor.DEFAULT,
     content: @Composable () -> Unit,
 ) {
     val dark = when (themeMode) {
@@ -97,6 +112,12 @@ fun ReadMdTheme(
         !dark && dynamicColor -> dynamicLightColorScheme(context)
         dark -> DarkColors
         else -> LightColors
+    }.let { scheme ->
+        if (accent == AccentColor.DEFAULT || themeMode == ThemeMode.SEPIA) {
+            scheme
+        } else {
+            scheme.withAccent(accent.swatch(dark), dark)
+        }
     }
     MaterialTheme(
         colorScheme = colorScheme,

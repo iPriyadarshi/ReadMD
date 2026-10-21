@@ -11,6 +11,7 @@ import com.readmd.app.data.FolderEntry
 import com.readmd.app.data.FolderSort
 import com.readmd.app.data.recent.RecentEntry
 import com.readmd.app.di.AppContainer
+import com.readmd.app.ui.theme.AccentColor
 import com.readmd.app.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -106,6 +107,13 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
 
     fun removeRecent(id: String) {
         viewModelScope.launch { container.recentFiles.remove(id) }
+    }
+
+    val accent = container.recentFiles.accent
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccentColor.DEFAULT)
+
+    fun setAccent(accent: AccentColor) {
+        viewModelScope.launch { container.recentFiles.setAccent(accent) }
     }
 
     fun setThemeMode(mode: ThemeMode) {
