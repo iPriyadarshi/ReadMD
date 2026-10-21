@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
@@ -97,6 +98,7 @@ import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.MarkdownTables
 import com.readmd.app.domain.MermaidBlocks
 import com.readmd.app.domain.ReaderFont
+import com.readmd.app.domain.ShareText
 import com.readmd.app.domain.ReadingPositions
 import com.readmd.app.domain.ReadingTime
 import com.readmd.app.domain.TextScale
@@ -558,6 +560,22 @@ fun ReaderScreen(
                                     onDismissRequest = { moreMenuOpen = false },
                                 ) {
                                     DropdownMenuItem(
+                                        text = { Text("Share text") },
+                                        enabled = state.markdown != null,
+                                        leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                        onClick = {
+                                            moreMenuOpen = false
+                                            val markdown = state.markdown ?: return@DropdownMenuItem
+                                            if (ShareText.fits(markdown)) {
+                                                shareText(context, ShareText.subject(state.title), markdown)
+                                            } else {
+                                                scope.launch {
+                                                    snackbarHost.showSnackbar("This document is too large to share as text")
+                                                }
+                                            }
+                                        },
+                                    )
+                                    DropdownMenuItem(
                                         text = { Text("Save as PDF") },
                                         enabled = state.markdown != null,
                                         leadingIcon = { Icon(Icons.Default.PictureAsPdf, contentDescription = null) },
@@ -733,6 +751,24 @@ private fun <T> ChoiceItems(
                 }
             },
         )
+    }
+}
+
+/** Opens the system share sheet with the document's source text under its title. */
+private fun shareText(context: android.content.Context, subject: String, text: String) {
+    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(android.content.Intent.EXTRA_SUBJECT, subject)
+        putExtra(android.content.Intent.EXTRA_TITLE, subject)
+        putExtra(android.content.Intent.EXTRA_TEXT, text)
+    }
+    try {
+        context.startActivity(
+            android.content.Intent.createChooser(send, "Share document")
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    } catch (_: android.content.ActivityNotFoundException) {
+        // No app can receive text; nothing to do.
     }
 }
 
