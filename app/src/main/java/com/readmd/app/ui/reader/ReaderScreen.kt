@@ -1,6 +1,8 @@
 package com.readmd.app.ui.reader
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Html
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Remove
@@ -86,6 +89,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.readmd.app.ReadMdApp
 import com.readmd.app.domain.Bookmarks
 import com.readmd.app.domain.CodeWrap
+import com.readmd.app.domain.ExportNames
 import com.readmd.app.domain.Footnotes
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.LineSpacing
@@ -226,6 +230,19 @@ fun ReaderScreen(
 
     var moreMenuOpen by remember { mutableStateOf(false) }
     val printer = remember { DocumentPrinter(context) }
+    val documentHtml = remember { DocumentHtml(context) }
+    val saveHtml = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/html"),
+    ) { destination ->
+        val markdown = state.markdown
+        if (destination != null && markdown != null) {
+            scope.launch {
+                val html = documentHtml.build(docId, state.title, markdown)
+                val saved = documentHtml.save(destination, html)
+                snackbarHost.showSnackbar(if (saved) "HTML saved" else "Couldn't save the file")
+            }
+        }
+    }
     DisposableEffect(printer) { onDispose { printer.release() } }
 
     var codeShown by remember { mutableStateOf<String?>(null) }
@@ -547,7 +564,18 @@ fun ReaderScreen(
                                         onClick = {
                                             moreMenuOpen = false
                                             val markdown = state.markdown ?: return@DropdownMenuItem
-                                            scope.launch { printer.print(docId, state.title, markdown) }
+                                            scope.launch {
+                                                printer.print(state.title, documentHtml.build(docId, state.title, markdown))
+                                            }
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Export as HTML") },
+                                        enabled = state.markdown != null,
+                                        leadingIcon = { Icon(Icons.Default.Html, contentDescription = null) },
+                                        onClick = {
+                                            moreMenuOpen = false
+                                            saveHtml.launch(ExportNames.fileName(state.title, "html"))
                                         },
                                     )
                                 }
