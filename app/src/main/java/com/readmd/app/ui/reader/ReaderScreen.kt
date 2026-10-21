@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.readmd.app.ReadMdApp
 import com.readmd.app.domain.Bookmarks
+import com.readmd.app.domain.CodeWrap
 import com.readmd.app.domain.Footnotes
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.LineSpacing
@@ -221,6 +222,7 @@ fun ReaderScreen(
         if (state.frontMatter.isEmpty()) controller.topInset = 0f
     }
 
+    var codeShown by remember { mutableStateOf<String?>(null) }
     var tableShown by remember { mutableStateOf<Int?>(null) }
     var imageShown by remember { mutableStateOf<String?>(null) }
     var diagramShown by remember { mutableStateOf<Int?>(null) }
@@ -251,6 +253,17 @@ fun ReaderScreen(
                 is LinkResult.External -> openExternalLink(context, result.link)
             }
         }
+    }
+
+    codeShown?.let { code ->
+        CodeDialog(
+            code = code,
+            onCopy = {
+                copyToClipboard(context, code)
+                scope.launch { snackbarHost.showSnackbar("Code copied") }
+            },
+            onDismiss = { codeShown = null },
+        )
     }
 
     tableShown?.let { index ->
@@ -482,6 +495,13 @@ fun ReaderScreen(
                                         onSelect = viewModel::setLineSpacing,
                                     )
                                     ChoiceItems(
+                                        title = "Code blocks",
+                                        options = CodeWrap.entries,
+                                        selected = state.codeWrap,
+                                        label = { it.label },
+                                        onSelect = viewModel::setCodeWrap,
+                                    )
+                                    ChoiceItems(
                                         title = "Margins",
                                         options = PageMargin.entries,
                                         selected = state.pageMargin,
@@ -600,6 +620,8 @@ fun ReaderScreen(
                                         copyToClipboard(context, code)
                                         scope.launch { snackbarHost.showSnackbar("Code copied") }
                                     },
+                                    codeWrap = state.codeWrap,
+                                    onViewCode = { codeShown = it },
                                 )
                             }
                         }

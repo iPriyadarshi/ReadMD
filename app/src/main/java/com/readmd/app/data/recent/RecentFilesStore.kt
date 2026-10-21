@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.readmd.app.domain.Bookmark
 import com.readmd.app.domain.Bookmarks
+import com.readmd.app.domain.CodeWrap
 import com.readmd.app.domain.CollectionItem
 import com.readmd.app.domain.Collections
 import com.readmd.app.domain.DocCollection
@@ -88,6 +89,8 @@ class RecentFilesStore(private val context: Context) {
 
     val favorites: Flow<List<FavoriteEntry>> =
         dataStore.data.map { Favorites.parse(it[KEY_FAVORITES].orEmpty()) }
+
+    val codeWrap: Flow<CodeWrap> = dataStore.data.map { CodeWrap.fromId(it[KEY_CODE_WRAP]) }
 
     val keepScreenOn: Flow<Boolean> = dataStore.data.map { it[KEY_KEEP_SCREEN_ON] ?: false }
 
@@ -184,6 +187,10 @@ class RecentFilesStore(private val context: Context) {
         }
     }
 
+    suspend fun setCodeWrap(wrap: CodeWrap) {
+        dataStore.edit { it[KEY_CODE_WRAP] = wrap.id }
+    }
+
     suspend fun setKeepScreenOn(enabled: Boolean) {
         dataStore.edit { it[KEY_KEEP_SCREEN_ON] = enabled }
     }
@@ -233,6 +240,7 @@ class RecentFilesStore(private val context: Context) {
         private val KEY_FOLDER_SORT = stringPreferencesKey("folder_sort")
         private val KEY_THEME = intPreferencesKey("theme_mode")
         private val KEY_ACCENT = stringPreferencesKey("accent_color")
+        private val KEY_CODE_WRAP = stringPreferencesKey("code_wrap")
         private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         private val KEY_FAVORITES = stringSetPreferencesKey("favorite_files")
         private val KEY_BOOKMARKS = stringSetPreferencesKey("bookmarks")

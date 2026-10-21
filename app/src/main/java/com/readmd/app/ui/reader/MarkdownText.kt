@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.delay
+import com.readmd.app.domain.CodeWrap
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.ReaderFont
@@ -41,6 +42,8 @@ fun MarkdownText(
     onLinkClick: (String) -> Unit,
     onImageClick: (String) -> Unit,
     onCopyCode: (String) -> Unit,
+    codeWrap: CodeWrap,
+    onViewCode: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -50,6 +53,7 @@ fun MarkdownText(
     val currentOnLinkClick by rememberUpdatedState(onLinkClick)
     val currentOnImageClick by rememberUpdatedState(onImageClick)
     val currentOnCopyCode by rememberUpdatedState(onCopyCode)
+    val currentOnViewCode by rememberUpdatedState(onViewCode)
 
     // Formulas are drawn as images sized when Markwon is built, so rebuild (and re-render)
     // when the text size settles rather than on every step of a pinch gesture.
@@ -59,7 +63,7 @@ fun MarkdownText(
         mathScale = textScale
     }
     val mathColor = contentColor.toArgb()
-    val markwon = remember(dark, mathScale, mathColor, docId) {
+    val markwon = remember(dark, mathScale, mathColor, docId, codeWrap) {
         val sizePx = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_SP,
             ReaderTextController.BASE_TEXT_SIZE_SP * mathScale / 100f,
@@ -69,6 +73,8 @@ fun MarkdownText(
             context, dark, sizePx, mathColor, docId,
             onImageClick = { currentOnImageClick(it) },
             onCopyCode = { currentOnCopyCode(it) },
+            codeWrap = codeWrap,
+            onViewCode = { currentOnViewCode(it) },
             onLinkClick = { currentOnLinkClick(it) },
         )
     }

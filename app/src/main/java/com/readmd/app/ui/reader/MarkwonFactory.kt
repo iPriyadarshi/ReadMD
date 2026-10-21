@@ -2,6 +2,7 @@ package com.readmd.app.ui.reader
 
 import android.content.Context
 import com.readmd.app.domain.CodeCopy
+import com.readmd.app.domain.CodeWrap
 import com.readmd.app.domain.ImageNames
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
@@ -30,6 +31,8 @@ import io.noties.prism4j.Prism4j
  * @param docId the open document; relative image paths are resolved against its folder.
  * @param onImageClick receives the address of a tapped image (for the full-screen viewer).
  * @param onCopyCode receives the exact text of a code block whose "Copy" link was tapped.
+ * @param codeWrap with [CodeWrap.SCROLL], blocks with long lines get a link that opens them in
+ * the sideways-scrolling code viewer, which receives the text through [onViewCode].
  */
 fun buildMarkwon(
     context: Context,
@@ -39,6 +42,8 @@ fun buildMarkwon(
     docId: String,
     onImageClick: (String) -> Unit,
     onCopyCode: (String) -> Unit,
+    codeWrap: CodeWrap,
+    onViewCode: (String) -> Unit,
     onLinkClick: (String) -> Unit,
 ): Markwon {
     val highlightTheme = if (dark) {
@@ -46,7 +51,7 @@ fun buildMarkwon(
     } else {
         Prism4jThemeDefault.create()
     }
-    val codeCopy = CodeCopyPlugin()
+    val codeCopy = CodeCopyPlugin(scrollLongLines = codeWrap == CodeWrap.SCROLL)
     return Markwon.builder(context)
         .usePlugin(codeCopy)
         .usePlugin(
@@ -65,11 +70,12 @@ fun buildMarkwon(
         .usePlugin(object : AbstractMarkwonPlugin() {
             override fun configureConfiguration(builder: MarkwonConfiguration.Builder) {
                 builder.linkResolver { _, link ->
-                    val block = CodeCopy.index(link)
-                    if (block != null) {
-                        codeCopy.blockAt(block)?.let(onCopyCode)
-                    } else {
-                        onLinkClick(link)
+                    val copy = CodeCopy.index(link)
+                    val view = CodeCopy.viewIndex(link)
+                    when {
+                        copy != null -> codeCopy.blockAt(copy)?.let { onCopyCode(it.text) }
+                        view != null -> codeCopy.blockAt(view)?.let { onViewCode(it.text) }
+                        else -> onLinkClick(link)
                     }
                 }
                 builder.imageDestinationProcessor(FolderImageDestinationProcessor(docId))
