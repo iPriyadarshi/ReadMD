@@ -117,7 +117,7 @@ fun HomeScreen(
     val favoriteIds = remember(favorites) { favorites.mapTo(HashSet()) { it.id } }
 
     val filePicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
+        OpenEditableDocument(),
     ) { uri: Uri? ->
         if (uri != null) {
             viewModel.onFilePicked(uri)

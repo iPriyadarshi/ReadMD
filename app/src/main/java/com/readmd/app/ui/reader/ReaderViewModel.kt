@@ -52,6 +52,11 @@ data class ReaderUiState(
     val wordCount: Int = 0,
     val keepScreenOn: Boolean = false,
     val codeWrap: CodeWrap = CodeWrap.DEFAULT,
+    /** True while the markdown source is being edited; [draft] holds the unsaved text. */
+    val editing: Boolean = false,
+    val draft: String = "",
+    val saving: Boolean = false,
+    val saveError: String? = null,
     val isFavorite: Boolean = false,
     val bookmarks: List<Bookmark> = emptyList(),
 )
@@ -213,6 +218,72 @@ class ReaderViewModel(
         _state.update { it.copy(rawMode = enabled) }
     }
 
+    val canEdit: Boolean = container.documents.isEditable(docId)
+
+    fun startEditing() {
+        _state.update { current ->
+            val text = current.markdown
+            if (!canEdit || text == null || current.loading) current else current.copy(editing = true, draft = text)
+        }
+    }
+
+    fun updateDraft(text: String) {
+        _state.update { it.copy(draft = text) }
+    }
+
+    /** Leaves the editor, dropping any unsaved changes. */
+    fun discardEditing() {
+        _state.update { it.copy(editing = false, draft = "", saveError = null) }
+    }
+
+    fun clearSaveError() {
+        _state.update { it.copy(saveError = null) }
+    }
+
+    /** Writes the draft back to the document; on failure the draft is kept and the error is reported. */
+    fun save(thenLeave: Boolean = false) {
+        val current = _state.value
+        if (!current.editing || current.saving) return
+        val text = current.draft
+        _state.update { it.copy(saving = true, saveError = null) }
+        viewModelScope.launch {
+            try {
+                container.documents.write(docId, text)
+                _state.update {
+                    it.withDocument(it.title, text).copy(
+                        saving = false,
+                        editing = if (thenLeave) false else it.editing,
+                        draft = if (thenLeave) "" else it.draft,
+                    )
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(saving = false, saveError = e.message ?: "Couldn't save the file") }
+            }
+        }
+    }
+
+    /** Fills every field derived from the document text, so loading and saving stay consistent. */
+    private fun ReaderUiState.withDocument(name: String, text: String): ReaderUiState {
+        // Front matter is shown in its own header; everything else (outline, word
+        // count, rendering) works on the body so the YAML never leaks into them.
+        val split = FrontMatter.split(text)
+        // Shortcodes become emoji first so the outline and rendering agree on heading text.
+        val body = EmojiShortcodes.prepare(split.body)
+        val withTables = MarkdownTables.prepare(Footnotes.prepare(body))
+        val prepared = MermaidBlocks.prepare(withTables.markdown)
+        return copy(
+            loading = false,
+            title = name,
+            markdown = text,
+            renderedMarkdown = MathMarkup.prepare(prepared.markdown),
+            diagrams = prepared.diagrams,
+            tables = withTables.tables,
+            headings = MarkdownOutlineParser.parse(body),
+            wordCount = ReadingTime.wordCount(split.body),
+            frontMatter = FrontMatter.entries(split.yaml),
+        )
+    }
+
     private fun load() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
@@ -222,26 +293,7 @@ class ReaderViewModel(
                 }
                 val doc = container.documents.read(docId)
                 container.recentFiles.recordOpened(doc.id, doc.name)
-                // Front matter is shown in its own header; everything else (outline, word
-                // count, rendering) works on the body so the YAML never leaks into them.
-                val split = FrontMatter.split(doc.text)
-                // Shortcodes become emoji first so the outline and rendering agree on heading text.
-                val body = EmojiShortcodes.prepare(split.body)
-                val withTables = MarkdownTables.prepare(Footnotes.prepare(body))
-                val prepared = MermaidBlocks.prepare(withTables.markdown)
-                _state.update {
-                    it.copy(
-                        loading = false,
-                        title = doc.name,
-                        markdown = doc.text,
-                        renderedMarkdown = MathMarkup.prepare(prepared.markdown),
-                        diagrams = prepared.diagrams,
-                        tables = withTables.tables,
-                        headings = MarkdownOutlineParser.parse(body),
-                        wordCount = ReadingTime.wordCount(split.body),
-                        frontMatter = FrontMatter.entries(split.yaml),
-                    )
-                }
+                _state.update { it.withDocument(doc.name, doc.text) }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(loading = false, error = e.message ?: "Could not open this file")

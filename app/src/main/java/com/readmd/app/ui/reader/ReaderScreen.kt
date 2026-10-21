@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -27,6 +28,8 @@ import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -41,7 +44,9 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -314,6 +319,46 @@ fun ReaderScreen(
     // system back gesture go through onBack so forward history is recorded.
     BackHandler(onBack = onBack)
 
+    // Leaving the editor with unsaved changes asks first.
+    var confirmLeaveEditor by remember { mutableStateOf(false) }
+    val unsavedChanges = state.editing && state.draft != state.markdown
+    fun leaveEditor() {
+        if (unsavedChanges) confirmLeaveEditor = true else viewModel.discardEditing()
+    }
+    BackHandler(enabled = state.editing) { leaveEditor() }
+    LaunchedEffect(state.saveError) {
+        state.saveError?.let {
+            snackbarHost.showSnackbar(it)
+            viewModel.clearSaveError()
+        }
+    }
+    if (confirmLeaveEditor) {
+        AlertDialog(
+            onDismissRequest = { confirmLeaveEditor = false },
+            title = { Text("Save changes?") },
+            text = { Text("Your edits to ${state.title} haven't been saved.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmLeaveEditor = false
+                        viewModel.save(thenLeave = true)
+                    },
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { confirmLeaveEditor = false }) { Text("Keep editing") }
+                    TextButton(
+                        onClick = {
+                            confirmLeaveEditor = false
+                            viewModel.discardEditing()
+                        },
+                    ) { Text("Discard") }
+                }
+            },
+        )
+    }
+
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
     }
@@ -371,7 +416,36 @@ fun ReaderScreen(
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHost) },
             topBar = {
-                if (searchActive) {
+                if (state.editing) {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = if (unsavedChanges) "Editing ${state.title} •" else "Editing ${state.title}",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { leaveEditor() }) {
+                                Icon(Icons.Default.Close, contentDescription = "Close editor")
+                            }
+                        },
+                        actions = {
+                            if (state.saving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier
+                                        .padding(horizontal = 12.dp)
+                                        .size(24.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                IconButton(onClick = { viewModel.save() }, enabled = unsavedChanges) {
+                                    Icon(Icons.Default.Save, contentDescription = "Save changes")
+                                }
+                            }
+                        },
+                    )
+                } else if (searchActive) {
                     TopAppBar(
                         navigationIcon = {
                             IconButton(onClick = { searchActive = false; query = "" }) {
@@ -569,6 +643,15 @@ fun ReaderScreen(
                                     onDismissRequest = { moreMenuOpen = false },
                                 ) {
                                     DropdownMenuItem(
+                                        text = { Text("Edit") },
+                                        enabled = viewModel.canEdit && state.markdown != null,
+                                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                        onClick = {
+                                            moreMenuOpen = false
+                                            viewModel.startEditing()
+                                        },
+                                    )
+                                    DropdownMenuItem(
                                         text = { Text("Share text") },
                                         enabled = state.markdown != null,
                                         leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
@@ -642,6 +725,13 @@ fun ReaderScreen(
             ) {
                 when {
                     state.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+
+                    state.editing -> MarkdownEditor(
+                        text = state.draft,
+                        onTextChange = viewModel::updateDraft,
+                        textScale = state.textScale,
+                        horizontalPadding = state.pageMargin.dp,
+                    )
 
                     state.error != null -> Column(
                         modifier = Modifier.align(Alignment.Center),

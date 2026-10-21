@@ -53,16 +53,42 @@ class DocumentRepository(private val context: Context) {
         }
     }
 
-    /** Keeps persistent read access to a SAF uri so recents keep working. */
+    /**
+     * Keeps persistent access to a SAF uri so recents keep working, including write access
+     * when the provider granted it (needed for editing). Falls back to read-only.
+     */
     fun takePersistablePermission(uri: Uri) {
+        val read = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+        val write = android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         try {
-            resolver.takePersistableUriPermission(
-                uri,
-                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
+            resolver.takePersistableUriPermission(uri, read or write)
         } catch (_: Exception) {
-            // Not all providers offer persistable grants; in-memory grant is
-            // still valid for this session.
+            try {
+                resolver.takePersistableUriPermission(uri, read)
+            } catch (_: Exception) {
+                // Not all providers offer persistable grants; in-memory grant is
+                // still valid for this session.
+            }
+        }
+    }
+
+    /** True for documents that live in a file the user picked (bundled samples are read-only). */
+    fun isEditable(id: String): Boolean = !id.startsWith(BUNDLED_PREFIX)
+
+    /**
+     * Replaces the document's contents with [text].
+     * @throws IOException with a readable message when the file can't be written
+     */
+    suspend fun write(id: String, text: String) = withContext(Dispatchers.IO) {
+        if (!isEditable(id)) throw IOException("Bundled samples can't be edited")
+        try {
+            val stream = resolver.openOutputStream(Uri.parse(id), "wt")
+                ?: throw IOException("This file can't be opened for writing")
+            stream.use { it.write(text.toByteArray(Charsets.UTF_8)) }
+        } catch (e: SecurityException) {
+            throw IOException("No permission to change this file. Open it from a folder or with the file picker.")
+        } catch (e: java.io.FileNotFoundException) {
+            throw IOException("This file can't be changed (it may be read-only)")
         }
     }
 
