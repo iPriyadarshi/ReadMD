@@ -116,6 +116,7 @@ import com.readmd.app.domain.ShareText
 import com.readmd.app.domain.ReadingPositions
 import com.readmd.app.domain.ReadingTime
 import com.readmd.app.domain.TextScale
+import com.readmd.app.domain.WindowLayout
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
@@ -431,10 +432,13 @@ fun ReaderScreen(
         query = ""
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
+    // Wide screens show the contents beside the reader instead of in a sliding drawer.
+    val wide = WindowLayout.isWide(androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp)
+    val showTocPane = wide && !state.rawMode && !state.editing
+
+    val tocPanel: @Composable (Boolean) -> Unit = { persistent ->
             TocDrawer(
+                persistent = persistent,
                 headings = state.headings,
                 bookmarks = state.bookmarks,
                 onCopyAnchor = { index ->
@@ -474,8 +478,9 @@ fun ReaderScreen(
                     }
                 },
             )
-        },
-    ) {
+    }
+
+    val readerScaffold: @Composable () -> Unit = {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHost) },
             bottomBar = {
@@ -632,7 +637,7 @@ fun ReaderScreen(
                             }
                         },
                         actions = {
-                            if (!state.rawMode) {
+                            if (!state.rawMode && !showTocPane) {
                                 IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                     Icon(
                                         Icons.AutoMirrored.Filled.FormatListBulleted,
@@ -932,6 +937,19 @@ fun ReaderScreen(
                 }
             }
         }
+    }
+
+    if (wide) {
+        Row(Modifier.fillMaxSize()) {
+            if (showTocPane) tocPanel(true)
+            Box(Modifier.weight(1f)) { readerScaffold() }
+        }
+    } else {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = { tocPanel(false) },
+            content = readerScaffold,
+        )
     }
 }
 
