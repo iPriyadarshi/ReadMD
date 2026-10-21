@@ -596,6 +596,10 @@ fun ReaderScreen(
                                     lineSpacing = state.lineSpacing,
                                     onLinkClick = onLinkClick,
                                     onImageClick = { imageShown = it },
+                                    onCopyCode = { code ->
+                                        copyToClipboard(context, code)
+                                        scope.launch { snackbarHost.showSnackbar("Code copied") }
+                                    },
                                 )
                             }
                         }
@@ -654,6 +658,12 @@ private fun <T> ChoiceItems(
             },
         )
     }
+}
+
+/** Puts [text] on the clipboard exactly as given. */
+private fun copyToClipboard(context: android.content.Context, text: String) {
+    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Code", text))
 }
 
 /** Hands web, mail and other absolute links to whichever app handles them. */
