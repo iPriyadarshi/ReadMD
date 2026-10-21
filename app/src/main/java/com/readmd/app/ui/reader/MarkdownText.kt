@@ -39,6 +39,7 @@ fun MarkdownText(
     font: ReaderFont,
     lineSpacing: LineSpacing,
     onLinkClick: (String) -> Unit,
+    onImageClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -46,6 +47,7 @@ fun MarkdownText(
     // highlighting and backgrounds match light/dark mode.
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val currentOnLinkClick by rememberUpdatedState(onLinkClick)
+    val currentOnImageClick by rememberUpdatedState(onImageClick)
 
     // Formulas are drawn as images sized when Markwon is built, so rebuild (and re-render)
     // when the text size settles rather than on every step of a pinch gesture.
@@ -61,7 +63,11 @@ fun MarkdownText(
             ReaderTextController.BASE_TEXT_SIZE_SP * mathScale / 100f,
             context.resources.displayMetrics,
         )
-        buildMarkwon(context, dark, sizePx, mathColor, docId) { currentOnLinkClick(it) }
+        buildMarkwon(
+            context, dark, sizePx, mathColor, docId,
+            onImageClick = { currentOnImageClick(it) },
+            onLinkClick = { currentOnLinkClick(it) },
+        )
     }
 
     AndroidView(
