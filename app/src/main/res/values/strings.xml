@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ReadMD</string>
+    <string name="widget_title">Recent files</string>
+    <string name="widget_empty">No recent files</string>
+    <string name="widget_description">Quick access to the markdown files you read last</string>
 </resources>

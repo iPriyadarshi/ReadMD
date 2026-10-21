@@ -5,6 +5,7 @@ import com.readmd.app.data.ShortcutPublisher
 import com.readmd.app.data.recent.RecentEntry
 import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.ShortcutLabels
+import com.readmd.app.widget.RecentsWidgetProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,6 +29,14 @@ class ReadMdApp : Application() {
                 .map { recents -> recents.take(ShortcutLabels.MAX_SHORTCUTS).map { it.id to it.name } }
                 .distinctUntilChanged()
                 .collect { pairs -> shortcuts.publish(pairs.map { (id, name) -> RecentEntry(id, name, 0L) }) }
+        }
+
+        // And the home-screen widget's list.
+        appScope.launch {
+            container.recentFiles.recents
+                .map { recents -> recents.take(RecentsWidgetProvider.MAX_ITEMS).map { it.id to it.name } }
+                .distinctUntilChanged()
+                .collect { RecentsWidgetProvider.refresh(this@ReadMdApp) }
         }
     }
 
