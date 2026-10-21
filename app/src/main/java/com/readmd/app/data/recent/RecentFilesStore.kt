@@ -6,6 +6,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.readmd.app.domain.LineSpacing
+import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.TextScale
 import com.readmd.app.ui.theme.ThemeMode
@@ -57,6 +59,12 @@ class RecentFilesStore(private val context: Context) {
     val readerFont: Flow<ReaderFont> =
         dataStore.data.map { ReaderFont.fromId(it[KEY_READER_FONT]) }
 
+    val lineSpacing: Flow<LineSpacing> =
+        dataStore.data.map { LineSpacing.fromId(it[KEY_LINE_SPACING]) }
+
+    val pageMargin: Flow<PageMargin> =
+        dataStore.data.map { PageMargin.fromId(it[KEY_PAGE_MARGIN]) }
+
     suspend fun recordOpened(id: String, name: String) {
         dataStore.edit { prefs ->
             val existing = prefs[KEY_RECENTS].orEmpty()
@@ -98,6 +106,14 @@ class RecentFilesStore(private val context: Context) {
         dataStore.edit { it[KEY_READER_FONT] = font.id }
     }
 
+    suspend fun setLineSpacing(spacing: LineSpacing) {
+        dataStore.edit { it[KEY_LINE_SPACING] = spacing.id }
+    }
+
+    suspend fun setPageMargin(margin: PageMargin) {
+        dataStore.edit { it[KEY_PAGE_MARGIN] = margin.id }
+    }
+
     companion object {
         private const val MAX_RECENTS = 20
         private const val DEFAULT_FOLDER_SORT = "NAME_ASC"
@@ -108,5 +124,7 @@ class RecentFilesStore(private val context: Context) {
         private val KEY_THEME = intPreferencesKey("theme_mode")
         private val KEY_TEXT_SCALE = intPreferencesKey("reader_text_scale")
         private val KEY_READER_FONT = stringPreferencesKey("reader_font")
+        private val KEY_LINE_SPACING = stringPreferencesKey("reader_line_spacing")
+        private val KEY_PAGE_MARGIN = stringPreferencesKey("reader_page_margin")
     }
 }

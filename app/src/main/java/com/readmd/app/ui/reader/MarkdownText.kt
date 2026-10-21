@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.readmd.app.domain.HeadingNode
+import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.ReaderFont
 
 /**
@@ -29,6 +30,7 @@ fun MarkdownText(
     contentColor: Color,
     textScale: Int,
     font: ReaderFont,
+    lineSpacing: LineSpacing,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -61,5 +63,6 @@ fun MarkdownText(
         controller.applyTextColor(contentColor.toArgb())
         controller.applyTextScale(textScale)
         controller.applyFont(font)
+        controller.applyLineSpacing(lineSpacing)
     }
 }
