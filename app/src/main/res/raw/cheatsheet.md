@@ -103,4 +103,12 @@ $$
 
 Formulas that can't be parsed show their source instead.
 
+## Footnotes
+
+Add a footnote marker like this[^note] and define it anywhere in the
+document. Tap the number to jump to the definition, and tap the arrow
+there to jump back.
+
+[^note]: Definitions are collected into a list at the end of the document.
+
 That's it — everything you need to read (and write) Markdown.
