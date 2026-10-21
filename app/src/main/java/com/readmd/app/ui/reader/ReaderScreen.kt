@@ -51,6 +51,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +78,7 @@ import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.ReadingPositions
+import com.readmd.app.domain.ReadingTime
 import com.readmd.app.domain.TextScale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -171,6 +173,19 @@ fun ReaderScreen(
             delay(400)
             val max = renderedScroll.maxValue
             if (max > 0) viewModel.savePosition(value * ReadingPositions.FULL / max)
+        }
+    }
+
+    // Recomputed only when the label text changes, not on every scroll pixel.
+    val scrollState = if (state.rawMode) rawScroll else renderedScroll
+    val timeLeftLabel by remember(state.wordCount, scrollState) {
+        derivedStateOf {
+            val progress = if (scrollState.maxValue > 0) {
+                scrollState.value.toFloat() / scrollState.maxValue
+            } else {
+                0f
+            }
+            if (state.loading || state.error != null) null else ReadingTime.label(state.wordCount, progress)
         }
     }
 
@@ -274,7 +289,16 @@ fun ReaderScreen(
                 } else {
                     TopAppBar(
                         title = {
-                            Text(state.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Column {
+                                Text(state.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                timeLeftLabel?.let { label ->
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                         },
                         navigationIcon = {
                             IconButton(onClick = onBack) {
