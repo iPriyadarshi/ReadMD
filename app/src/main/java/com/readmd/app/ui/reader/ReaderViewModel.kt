@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.readmd.app.ReadMdApp
 import com.readmd.app.di.AppContainer
+import com.readmd.app.domain.Bookmark
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.MarkdownOutlineParser
 import com.readmd.app.domain.LineSpacing
@@ -34,6 +35,7 @@ data class ReaderUiState(
     val wordCount: Int = 0,
     val keepScreenOn: Boolean = false,
     val isFavorite: Boolean = false,
+    val bookmarks: List<Bookmark> = emptyList(),
 )
 
 /** Outcome of tapping a link in the rendered document. */
@@ -69,6 +71,11 @@ class ReaderViewModel(
             }
         }
         viewModelScope.launch {
+            container.recentFiles.bookmarks(docId).collect { bookmarks ->
+                _state.update { it.copy(bookmarks = bookmarks) }
+            }
+        }
+        viewModelScope.launch {
             container.recentFiles.favorites.collect { favorites ->
                 _state.update { it.copy(isFavorite = favorites.any { fav -> fav.id == docId }) }
             }
@@ -88,6 +95,16 @@ class ReaderViewModel(
                 _state.update { it.copy(pageMargin = margin) }
             }
         }
+    }
+
+    fun addBookmark(permille: Int, label: String) {
+        viewModelScope.launch {
+            container.recentFiles.addBookmark(Bookmark(docId, permille, label, System.currentTimeMillis()))
+        }
+    }
+
+    fun removeBookmark(bookmark: Bookmark) {
+        viewModelScope.launch { container.recentFiles.removeBookmark(docId, bookmark.permille) }
     }
 
     fun toggleFavorite() {
