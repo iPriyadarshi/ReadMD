@@ -148,6 +148,47 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch { container.recentFiles.remove(id) }
     }
 
+    val collections = container.recentFiles.collections
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val collectionItems = container.recentFiles.collectionItems
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** The collection the home screen is filtered to, or null for everything. */
+    private val _selectedCollection = MutableStateFlow<String?>(null)
+    val selectedCollection = _selectedCollection.asStateFlow()
+
+    fun selectCollection(id: String?) {
+        _selectedCollection.value = id
+    }
+
+    /** Creates a collection; when [docId] is given the document is added to it right away. */
+    fun createCollection(name: String, docId: String? = null, docName: String? = null) {
+        viewModelScope.launch {
+            val id = container.recentFiles.createCollection(name)
+            if (docId != null && docName != null) container.recentFiles.addToCollection(id, docId, docName)
+        }
+    }
+
+    fun renameCollection(id: String, name: String) {
+        viewModelScope.launch { container.recentFiles.renameCollection(id, name) }
+    }
+
+    fun deleteCollection(id: String) {
+        if (_selectedCollection.value == id) _selectedCollection.value = null
+        viewModelScope.launch { container.recentFiles.deleteCollection(id) }
+    }
+
+    fun setInCollection(collectionId: String, docId: String, docName: String, member: Boolean) {
+        viewModelScope.launch {
+            if (member) {
+                container.recentFiles.addToCollection(collectionId, docId, docName)
+            } else {
+                container.recentFiles.removeFromCollection(collectionId, docId)
+            }
+        }
+    }
+
     val favorites = container.recentFiles.favorites
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 

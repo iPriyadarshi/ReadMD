@@ -9,6 +9,9 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.readmd.app.domain.Bookmark
 import com.readmd.app.domain.Bookmarks
+import com.readmd.app.domain.CollectionItem
+import com.readmd.app.domain.Collections
+import com.readmd.app.domain.DocCollection
 import com.readmd.app.domain.FavoriteEntry
 import com.readmd.app.domain.Favorites
 import com.readmd.app.domain.LineSpacing
@@ -18,6 +21,7 @@ import com.readmd.app.domain.ReadingPositions
 import com.readmd.app.domain.TextScale
 import com.readmd.app.ui.theme.AccentColor
 import com.readmd.app.ui.theme.ThemeMode
+import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -73,6 +77,12 @@ class RecentFilesStore(private val context: Context) {
     val pageMargin: Flow<PageMargin> =
         dataStore.data.map { PageMargin.fromId(it[KEY_PAGE_MARGIN]) }
 
+    val collections: Flow<List<DocCollection>> =
+        dataStore.data.map { Collections.parseCollections(it[KEY_COLLECTIONS].orEmpty()) }
+
+    val collectionItems: Flow<List<CollectionItem>> =
+        dataStore.data.map { Collections.parseItems(it[KEY_COLLECTION_ITEMS].orEmpty()) }
+
     fun bookmarks(docId: String): Flow<List<Bookmark>> =
         dataStore.data.map { Bookmarks.forDoc(it[KEY_BOOKMARKS].orEmpty(), docId) }
 
@@ -110,6 +120,43 @@ class RecentFilesStore(private val context: Context) {
 
     suspend fun setFolderSort(sortId: String) {
         dataStore.edit { it[KEY_FOLDER_SORT] = sortId }
+    }
+
+    /** Creates a collection and returns its id. */
+    suspend fun createCollection(name: String): String {
+        val id = UUID.randomUUID().toString()
+        dataStore.edit { prefs ->
+            prefs[KEY_COLLECTIONS] = Collections.create(prefs[KEY_COLLECTIONS].orEmpty(), id, name)
+        }
+        return id
+    }
+
+    suspend fun renameCollection(id: String, name: String) {
+        dataStore.edit { prefs ->
+            prefs[KEY_COLLECTIONS] = Collections.rename(prefs[KEY_COLLECTIONS].orEmpty(), id, name)
+        }
+    }
+
+    /** Deletes the collection and forgets which documents were in it (the documents are untouched). */
+    suspend fun deleteCollection(id: String) {
+        dataStore.edit { prefs ->
+            prefs[KEY_COLLECTIONS] = Collections.delete(prefs[KEY_COLLECTIONS].orEmpty(), id)
+            prefs[KEY_COLLECTION_ITEMS] = Collections.deleteItems(prefs[KEY_COLLECTION_ITEMS].orEmpty(), id)
+        }
+    }
+
+    suspend fun addToCollection(collectionId: String, docId: String, name: String) {
+        dataStore.edit { prefs ->
+            prefs[KEY_COLLECTION_ITEMS] =
+                Collections.assign(prefs[KEY_COLLECTION_ITEMS].orEmpty(), collectionId, docId, name)
+        }
+    }
+
+    suspend fun removeFromCollection(collectionId: String, docId: String) {
+        dataStore.edit { prefs ->
+            prefs[KEY_COLLECTION_ITEMS] =
+                Collections.unassign(prefs[KEY_COLLECTION_ITEMS].orEmpty(), collectionId, docId)
+        }
     }
 
     suspend fun addBookmark(bookmark: Bookmark) {
@@ -189,6 +236,8 @@ class RecentFilesStore(private val context: Context) {
         private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         private val KEY_FAVORITES = stringSetPreferencesKey("favorite_files")
         private val KEY_BOOKMARKS = stringSetPreferencesKey("bookmarks")
+        private val KEY_COLLECTIONS = stringSetPreferencesKey("collections")
+        private val KEY_COLLECTION_ITEMS = stringSetPreferencesKey("collection_items")
         private val KEY_TEXT_SCALE = intPreferencesKey("reader_text_scale")
         private val KEY_READER_FONT = stringPreferencesKey("reader_font")
         private val KEY_LINE_SPACING = stringPreferencesKey("reader_line_spacing")

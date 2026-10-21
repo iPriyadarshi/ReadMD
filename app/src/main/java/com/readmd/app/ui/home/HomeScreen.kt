@@ -13,6 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.background
+import com.readmd.app.domain.DocCollection
+import com.readmd.app.domain.Collections
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import com.readmd.app.domain.NameFilter
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.focusRequester
@@ -89,7 +93,7 @@ private val markdownMimeTypes = arrayOf(
     "*/*",
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -98,6 +102,15 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val accent by viewModel.accent.collectAsState()
+    val collections by viewModel.collections.collectAsState()
+    val collectionItems by viewModel.collectionItems.collectAsState()
+    val selectedCollectionId by viewModel.selectedCollection.collectAsState()
+    val selectedCollection = collections.firstOrNull { it.id == selectedCollectionId }
+    var assignTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var createCollectionFor by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var createCollectionOpen by remember { mutableStateOf(false) }
+    var renameTarget by remember { mutableStateOf<DocCollection?>(null) }
+    var deleteTarget by remember { mutableStateOf<DocCollection?>(null) }
     val search by viewModel.search.collectAsState()
     var folderSearchOpen by remember { mutableStateOf(false) }
     val favorites by viewModel.favorites.collectAsState()
@@ -271,6 +284,55 @@ fun HomeScreen(
                 }
             }
 
+            item(key = "collection-chips") {
+                CollectionChips(
+                    collections = collections,
+                    selectedId = selectedCollection?.id,
+                    onSelect = viewModel::selectCollection,
+                    onCreate = { createCollectionOpen = true },
+                    onRename = { renameTarget = it },
+                    onDelete = { deleteTarget = it },
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
+
+            if (selectedCollection != null) {
+                val docs = NameFilter.filter(
+                    Collections.docsIn(collectionItems, selectedCollection.id),
+                    nameQuery,
+                ) { it.name }
+                item(key = "collection-header") {
+                    Text(
+                        selectedCollection.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                    )
+                    HorizontalDivider()
+                }
+                if (docs.isEmpty()) {
+                    item(key = "collection-empty") {
+                        Text(
+                            if (nameQuery.isBlank()) {
+                                "No files here yet. Long-press a file in your recents or folder to add it."
+                            } else {
+                                "No files match"
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                items(docs, key = { "collection-doc-${it.docId}" }) { item ->
+                    ListItem(
+                        headlineContent = { Text(item.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        modifier = Modifier.combinedClickable(
+                            onClick = { onOpenDoc(item.docId, null) },
+                            onLongClick = { assignTarget = item.docId to item.name },
+                        ),
+                    )
+                }
+            } else {
             // Folder section
             state.folder?.let { folder ->
                 item(key = "folder-header") {
@@ -428,7 +490,10 @@ fun HomeScreen(
                     items(shownEntries, key = { "folder-${it.id}" }) { entry ->
                         ListItem(
                             headlineContent = { Text(entry.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            modifier = Modifier.clickable { onOpenDoc(entry.id, null) },
+                            modifier = Modifier.combinedClickable(
+                                onClick = { onOpenDoc(entry.id, null) },
+                                onLongClick = { assignTarget = entry.id to entry.name },
+                            ),
                         )
                     }
                 }
@@ -453,7 +518,10 @@ fun HomeScreen(
                                 Icon(Icons.Default.Close, contentDescription = "Remove from favorites")
                             }
                         },
-                        modifier = Modifier.clickable { onOpenDoc(favorite.id, null) },
+                        modifier = Modifier.combinedClickable(
+                            onClick = { onOpenDoc(favorite.id, null) },
+                            onLongClick = { assignTarget = favorite.id to favorite.name },
+                        ),
                     )
                 }
             }
@@ -503,7 +571,10 @@ fun HomeScreen(
                             }
                         }
                     },
-                    modifier = Modifier.clickable { onOpenDoc(recent.id, null) },
+                    modifier = Modifier.combinedClickable(
+                        onClick = { onOpenDoc(recent.id, null) },
+                        onLongClick = { assignTarget = recent.id to recent.name },
+                    ),
                 )
             }
 
@@ -523,6 +594,67 @@ fun HomeScreen(
                     modifier = Modifier.clickable { onOpenDoc(sample.id, null) },
                 )
             }
+            }
         }
+    }
+
+    // Collection dialogs
+    if (createCollectionOpen || createCollectionFor != null) {
+        val forDoc = createCollectionFor
+        CollectionNameDialog(
+            title = "New collection",
+            confirmLabel = "Create",
+            initial = "",
+            collections = collections,
+            exceptId = null,
+            onConfirm = { name ->
+                viewModel.createCollection(name, forDoc?.first, forDoc?.second)
+                createCollectionOpen = false
+                createCollectionFor = null
+            },
+            onDismiss = {
+                createCollectionOpen = false
+                createCollectionFor = null
+            },
+        )
+    }
+    renameTarget?.let { target ->
+        CollectionNameDialog(
+            title = "Rename collection",
+            confirmLabel = "Rename",
+            initial = target.name,
+            collections = collections,
+            exceptId = target.id,
+            onConfirm = { name ->
+                viewModel.renameCollection(target.id, name)
+                renameTarget = null
+            },
+            onDismiss = { renameTarget = null },
+        )
+    }
+    deleteTarget?.let { target ->
+        DeleteCollectionDialog(
+            collection = target,
+            onConfirm = {
+                viewModel.deleteCollection(target.id)
+                deleteTarget = null
+            },
+            onDismiss = { deleteTarget = null },
+        )
+    }
+    assignTarget?.let { (docId, docName) ->
+        AssignCollectionsDialog(
+            docName = docName,
+            collections = collections,
+            memberOf = Collections.collectionIdsOf(collectionItems, docId),
+            onToggle = { collection, member ->
+                viewModel.setInCollection(collection.id, docId, docName, member)
+            },
+            onCreate = {
+                createCollectionFor = docId to docName
+                assignTarget = null
+            },
+            onDismiss = { assignTarget = null },
+        )
     }
 }
