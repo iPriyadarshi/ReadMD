@@ -14,12 +14,14 @@ import com.readmd.app.domain.FrontMatter
 import com.readmd.app.domain.FrontMatterEntry
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.MarkdownOutlineParser
+import com.readmd.app.domain.MarkdownTables
 import com.readmd.app.domain.MathMarkup
 import com.readmd.app.domain.MermaidBlocks
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.ReadingTime
+import com.readmd.app.domain.TableData
 import com.readmd.app.domain.RelativeLink
 import com.readmd.app.domain.TextScale
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +38,8 @@ data class ReaderUiState(
     val renderedMarkdown: String? = null,
     /** Source of each mermaid block, indexed by its link. */
     val diagrams: List<String> = emptyList(),
+    /** Wide tables, indexed by their "View wide table" link. */
+    val tables: List<TableData> = emptyList(),
     /** Entries of the document's YAML front matter, shown in a collapsible header. */
     val frontMatter: List<FrontMatterEntry> = emptyList(),
     val headings: List<HeadingNode> = emptyList(),
@@ -212,7 +216,8 @@ class ReaderViewModel(
                 val split = FrontMatter.split(doc.text)
                 // Shortcodes become emoji first so the outline and rendering agree on heading text.
                 val body = EmojiShortcodes.prepare(split.body)
-                val prepared = MermaidBlocks.prepare(Footnotes.prepare(body))
+                val withTables = MarkdownTables.prepare(Footnotes.prepare(body))
+                val prepared = MermaidBlocks.prepare(withTables.markdown)
                 _state.update {
                     it.copy(
                         loading = false,
@@ -220,6 +225,7 @@ class ReaderViewModel(
                         markdown = doc.text,
                         renderedMarkdown = MathMarkup.prepare(prepared.markdown),
                         diagrams = prepared.diagrams,
+                        tables = withTables.tables,
                         headings = MarkdownOutlineParser.parse(body),
                         wordCount = ReadingTime.wordCount(split.body),
                         frontMatter = FrontMatter.entries(split.yaml),

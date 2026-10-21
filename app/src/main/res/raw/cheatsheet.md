@@ -79,6 +79,14 @@ No language tag means plain monospace text.
 | a | b | c |
 | longer cell | x | 42 |
 
+Tables with many columns or long cells get a "View wide table" link above
+them, which opens the full table at its natural size and scrolls sideways:
+
+| Name | Role | Team | Location | Start date | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Ada Lovelace | Engineer | Platform | London | 2021-03-01 | Wrote the first program |
+| Alan Turing | Researcher | Research | Manchester | 2022-07-15 | Works on computability |
+
 ## Horizontal rules
 
 Three hyphens create a horizontal rule:
