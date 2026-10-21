@@ -43,12 +43,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.Switch
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -67,6 +69,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -187,6 +190,13 @@ fun ReaderScreen(
             }
             if (state.loading || state.error != null) null else ReadingTime.label(state.wordCount, progress)
         }
+    }
+
+    // Keep the display awake only while this screen is showing and the setting is on.
+    val view = LocalView.current
+    DisposableEffect(view, state.keepScreenOn) {
+        view.keepScreenOn = state.keepScreenOn
+        onDispose { view.keepScreenOn = false }
     }
 
     BackHandler(enabled = drawerState.isOpen) {
@@ -370,6 +380,17 @@ fun ReaderScreen(
                                         selected = state.pageMargin,
                                         label = { it.label },
                                         onSelect = viewModel::setPageMargin,
+                                    )
+                                    HorizontalDivider()
+                                    DropdownMenuItem(
+                                        text = { Text("Keep screen on") },
+                                        onClick = { viewModel.setKeepScreenOn(!state.keepScreenOn) },
+                                        trailingIcon = {
+                                            Switch(
+                                                checked = state.keepScreenOn,
+                                                onCheckedChange = null,
+                                            )
+                                        },
                                     )
                                 }
                             }

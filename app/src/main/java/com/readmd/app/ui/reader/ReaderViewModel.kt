@@ -31,6 +31,7 @@ data class ReaderUiState(
     val lineSpacing: LineSpacing = LineSpacing.DEFAULT,
     val pageMargin: PageMargin = PageMargin.DEFAULT,
     val wordCount: Int = 0,
+    val keepScreenOn: Boolean = false,
 )
 
 class ReaderViewModel(
@@ -54,6 +55,11 @@ class ReaderViewModel(
             }
         }
         viewModelScope.launch {
+            container.recentFiles.keepScreenOn.collect { enabled ->
+                _state.update { it.copy(keepScreenOn = enabled) }
+            }
+        }
+        viewModelScope.launch {
             container.recentFiles.lineSpacing.collect { spacing ->
                 _state.update { it.copy(lineSpacing = spacing) }
             }
@@ -63,6 +69,10 @@ class ReaderViewModel(
                 _state.update { it.copy(pageMargin = margin) }
             }
         }
+    }
+
+    fun setKeepScreenOn(enabled: Boolean) {
+        viewModelScope.launch { container.recentFiles.setKeepScreenOn(enabled) }
     }
 
     fun setLineSpacing(spacing: LineSpacing) {
