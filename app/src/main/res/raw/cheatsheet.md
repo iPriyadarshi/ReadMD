@@ -103,6 +103,29 @@ $$
 
 Formulas that can't be parsed show their source instead.
 
+## Callouts
+
+Start a quote with a marker to get a coloured callout:
+
+> [!NOTE]
+> Useful information that users should know.
+
+> [!TIP]
+> Helpful advice for doing things better.
+
+> [!IMPORTANT]
+> Key information users need to know.
+
+> [!WARNING]
+> Urgent info that needs immediate attention.
+
+> [!CAUTION]
+> Advises about risks or negative outcomes.
+
+Ordinary quotes look as before:
+
+> Just a regular quote.
+
 ## Emoji
 
 Common GitHub shortcodes turn into emoji: :tada: :rocket: :+1: :sparkles:.
