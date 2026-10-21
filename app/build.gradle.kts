@@ -13,8 +13,10 @@ android {
         applicationId = "com.readmd.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        // Release builds get both from the git tag (see scripts/version-from-tag.sh and the
+        // release workflow), passed as -PversionName and -PversionCode. Local builds are "dev".
+        versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 1
+        versionName = providers.gradleProperty("versionName").orNull ?: "dev"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

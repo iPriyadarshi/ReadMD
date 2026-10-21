@@ -1,2 +1,5 @@
 # Vendored scripts must be stored byte-for-byte (no line-ending conversion)
 app/src/main/assets/mermaid/* -text
+
+# Shell scripts run on Linux runners, so they must keep LF line endings.
+*.sh text eol=lf

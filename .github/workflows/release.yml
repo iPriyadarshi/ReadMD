@@ -27,6 +27,16 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Work out the version from the tag
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          read -r name code < <(bash scripts/version-from-tag.sh "$GITHUB_REF_NAME")
+          echo "Releasing $name (version code $code)"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
       - name: Restore release keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -51,7 +61,9 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease
+          ./gradlew --no-daemon assembleRelease \
+            -PversionName="${{ steps.version.outputs.name }}" \
+            -PversionCode="${{ steps.version.outputs.code }}"
 
       - name: Keep the R8 mapping file
         # Needed to read crash reports from this build; see "Crash reports" in the README.
