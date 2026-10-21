@@ -80,6 +80,23 @@ gradlew :app:assembleDebug
 
 The debug APK lands in `app/build/outputs/apk/debug/`.
 
+## Releasing
+
+Push a tag named `v<major>.<minor>.<patch>` (for example `v1.4.2`, or `v1.4.2-rc1` for a
+pre-release). The release workflow reads the version from the tag:
+
+| Tag | versionName | versionCode |
+| --- | --- | --- |
+| `v1.0.0` | `1.0.0` | `10000` |
+| `v1.4.2` | `1.4.2` | `10402` |
+| `v2.10.15` | `2.10.15` | `21015` |
+
+`versionCode` is `major * 10000 + minor * 100 + patch`, so every new version is an upgrade for
+Android. Minor and patch must stay below 100, and a pre-release shares the code of its final
+version. A tag that doesn't match is rejected before anything is built. Local builds are named
+`dev` with code `1`; you can set either with `-PversionName=` and `-PversionCode=`.
+`bash scripts/test-version-from-tag.sh` checks the rules.
+
 ## Tests
 
 Unit tests (JVM, no device needed):
