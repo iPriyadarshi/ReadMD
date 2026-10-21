@@ -96,9 +96,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.readmd.app.ReadMdApp
 import com.readmd.app.domain.Bookmarks
 import com.readmd.app.domain.CodeWrap
+import com.readmd.app.domain.EditPolicy
 import com.readmd.app.domain.ExportNames
 import com.readmd.app.domain.Footnotes
 import com.readmd.app.domain.HeadingAnchors
+import com.readmd.app.domain.LeaveAction
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
@@ -238,6 +240,7 @@ fun ReaderScreen(
     }
 
     val anchors = remember(state.headings) { HeadingAnchors.anchors(state.headings) }
+    var editorMenuOpen by remember { mutableStateOf(false) }
     var moreMenuOpen by remember { mutableStateOf(false) }
     val printer = remember { DocumentPrinter(context) }
     val documentHtml = remember { DocumentHtml(context) }
@@ -321,9 +324,23 @@ fun ReaderScreen(
 
     // Leaving the editor with unsaved changes asks first.
     var confirmLeaveEditor by remember { mutableStateOf(false) }
-    val unsavedChanges = state.editing && state.draft != state.markdown
+    val unsavedChanges = EditPolicy.isDirty(state.editing, state.draft, state.markdown)
     fun leaveEditor() {
-        if (unsavedChanges) confirmLeaveEditor = true else viewModel.discardEditing()
+        when (EditPolicy.leaveAction(unsavedChanges, state.autosave)) {
+            LeaveAction.LEAVE -> viewModel.discardEditing()
+            LeaveAction.SAVE_AND_LEAVE -> viewModel.save(thenLeave = true)
+            LeaveAction.ASK -> confirmLeaveEditor = true
+        }
+    }
+
+    // Autosave also writes when the app is sent to the background mid-edit.
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) viewModel.saveIfAutosaving()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     BackHandler(enabled = state.editing) { leaveEditor() }
     LaunchedEffect(state.saveError) {
@@ -441,6 +458,29 @@ fun ReaderScreen(
                             } else {
                                 IconButton(onClick = { viewModel.save() }, enabled = unsavedChanges) {
                                     Icon(Icons.Default.Save, contentDescription = "Save changes")
+                                }
+                            }
+                            Box {
+                                IconButton(onClick = { editorMenuOpen = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Editor options")
+                                }
+                                DropdownMenu(
+                                    expanded = editorMenuOpen,
+                                    onDismissRequest = { editorMenuOpen = false },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Autosave") },
+                                        onClick = { viewModel.setAutosave(!state.autosave) },
+                                        trailingIcon = { Switch(checked = state.autosave, onCheckedChange = null) },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Discard changes") },
+                                        enabled = unsavedChanges,
+                                        onClick = {
+                                            editorMenuOpen = false
+                                            viewModel.discardEditing()
+                                        },
+                                    )
                                 }
                             }
                         },
