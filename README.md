@@ -22,6 +22,30 @@ A simple, focused Markdown reader for Android.
   it rendered (bundled mermaid 11.4.1, MIT licensed, works offline)
 - **Themes** — light/dark/system, with dynamic color (Android 12+)
 
+## Privacy and crash reports
+
+ReadMD works offline and has no accounts, ads or analytics. Your documents, names and
+reading history stay on your device.
+
+If the app crashes, it saves a small report in its private storage: the app and Android
+versions, the device model, the thread and the stack trace. File addresses and paths in the
+trace are replaced with `<uri>` and `<path>`, and no document text or file names are
+included. **Nothing is sent anywhere.** The next time you open the app it offers to share the
+report (through the normal share sheet, so you choose where it goes) or to discard it.
+
+**Opting out:** open the theme menu on the home screen and turn off *Save crash reports*.
+Nothing is saved while it is off, and turning it off deletes any report already stored.
+
+### Reading a report
+
+Release builds are minified, so stack traces use short names. Each tagged release uploads its
+`mapping.txt` as a workflow artifact (`mapping-<tag>`). Download the one for the version in the
+report and run Android's `retrace` tool:
+
+```
+retrace mapping.txt crash-report.txt
+```
+
 ## Tech stack
 
 | Piece | Choice |

@@ -164,6 +164,13 @@
     <string name="error_cannot_read">No se puede leer este archivo: %1$s</string>
     <string name="error_cannot_open">No se puede abrir este archivo</string>
     <string name="error_bundled_missing">No se encontró el documento incluido «%1$s»</string>
+    <string name="crash_reports_setting">Guardar informes de fallos</string>
+    <string name="crash_dialog_title">ReadMD se cerró inesperadamente</string>
+    <string name="crash_dialog_message">Se guardó un informe en este dispositivo. Solo contiene detalles técnicos: ni documentos, ni nombres de archivo ni rutas. ¿Quieres compartirlo para ayudar a corregir el problema?</string>
+    <string name="crash_share">Compartir informe</string>
+    <string name="crash_dismiss">Descartar</string>
+    <string name="crash_share_subject">Informe de fallo de ReadMD</string>
+    <string name="crash_share_chooser">Enviar informe</string>
     <string name="widget_title">Archivos recientes</string>
     <string name="widget_empty">No hay archivos recientes</string>
     <string name="widget_description">Acceso rápido a los archivos markdown que leíste hace poco</string>
