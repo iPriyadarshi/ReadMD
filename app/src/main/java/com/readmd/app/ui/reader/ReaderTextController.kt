@@ -8,6 +8,7 @@ import android.util.TypedValue
 import android.widget.TextView
 import io.noties.markwon.Markwon
 import io.noties.markwon.core.spans.HeadingSpan
+import io.noties.markwon.core.spans.LinkSpan
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.ReaderFont
@@ -146,6 +147,20 @@ class ReaderTextController {
         }
 
         return null
+    }
+
+    /**
+     * Scroll offset of the first link in the rendered text whose target is [url], or null.
+     * Used to hop between a footnote marker and its definition.
+     */
+    fun offsetForLink(url: String): Float? {
+        val tv = textView ?: return null
+        val layout = tv.layout ?: return null
+        val text = tv.text as? Spanned ?: return null
+        val start = text.getSpans(0, text.length, LinkSpan::class.java)
+            .filter { it.url == url }
+            .minOfOrNull { text.getSpanStart(it) } ?: return null
+        return layout.getLineTop(layout.getLineForOffset(start)).toFloat() + topInset
     }
 
     fun applySearch(

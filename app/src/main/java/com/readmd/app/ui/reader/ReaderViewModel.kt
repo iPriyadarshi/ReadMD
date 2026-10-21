@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.readmd.app.ReadMdApp
 import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.Bookmark
+import com.readmd.app.domain.Footnotes
 import com.readmd.app.domain.FrontMatter
 import com.readmd.app.domain.FrontMatterEntry
 import com.readmd.app.domain.HeadingNode
@@ -208,7 +209,7 @@ class ReaderViewModel(
                 // Front matter is shown in its own header; everything else (outline, word
                 // count, rendering) works on the body so the YAML never leaks into them.
                 val split = FrontMatter.split(doc.text)
-                val prepared = MermaidBlocks.prepare(split.body)
+                val prepared = MermaidBlocks.prepare(Footnotes.prepare(split.body))
                 _state.update {
                     it.copy(
                         loading = false,

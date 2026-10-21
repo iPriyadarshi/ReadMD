@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.readmd.app.ReadMdApp
 import com.readmd.app.domain.Bookmarks
+import com.readmd.app.domain.Footnotes
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
@@ -222,8 +223,21 @@ fun ReaderScreen(
     var diagramShown by remember { mutableStateOf<Int?>(null) }
     val onLinkClick: (String) -> Unit = { link ->
         val diagram = MermaidBlocks.diagramIndex(link)
+        val footnote = Footnotes.referenceNumber(link)
+        val footnoteBack = Footnotes.backNumber(link)
         if (diagram != null) {
             diagramShown = diagram
+        } else if (footnote != null || footnoteBack != null) {
+            // A marker jumps to the "back" link in its definition, and that link jumps
+            // back to the first marker.
+            val target = if (footnote != null) {
+                "${Footnotes.BACK_PREFIX}$footnote"
+            } else {
+                "${Footnotes.REFERENCE_PREFIX}$footnoteBack"
+            }
+            controller.offsetForLink(target)?.let { offset ->
+                scope.launch { renderedScroll.animateScrollTo((offset - 20f).coerceAtLeast(0f).roundToInt()) }
+            }
         } else scope.launch {
             when (val result = viewModel.resolveLink(link)) {
                 is LinkResult.Open -> onOpenLinked(result.docId)
