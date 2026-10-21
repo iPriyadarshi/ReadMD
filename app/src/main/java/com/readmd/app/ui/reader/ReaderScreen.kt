@@ -10,6 +10,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -331,6 +332,32 @@ fun ReaderScreen(
             LeaveAction.SAVE_AND_LEAVE -> viewModel.save(thenLeave = true)
             LeaveAction.ASK -> confirmLeaveEditor = true
         }
+    }
+
+    // While the screen is visible, notice when the file is changed by something else.
+    val reloadOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(reloadOwner) {
+        reloadOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            while (true) {
+                viewModel.checkForChanges()
+                delay(RELOAD_CHECK_INTERVAL_MS)
+            }
+        }
+    }
+
+    // Keep the reader at the same relative position after a reload, and say what happened.
+    var fractionBeforeReload by remember { mutableStateOf<Float?>(null) }
+    LaunchedEffect(state.reloadCount) {
+        if (state.reloadCount == 0) return@LaunchedEffect
+        val max = renderedScroll.maxValue
+        fractionBeforeReload = if (max > 0) renderedScroll.value.toFloat() / max else 0f
+        snackbarHost.showSnackbar("Document updated")
+    }
+    LaunchedEffect(renderedGeneration) {
+        val fraction = fractionBeforeReload ?: return@LaunchedEffect
+        fractionBeforeReload = null
+        val max = withTimeoutOrNull(1_000) { snapshotFlow { renderedScroll.maxValue }.first { it > 0 } }
+        if (max != null) renderedScroll.scrollTo((max * fraction).roundToInt())
     }
 
     // Autosave also writes when the app is sent to the background mid-edit.
@@ -946,6 +973,8 @@ private fun openExternalLink(context: android.content.Context, link: String) {
         // No app can open this link; nothing to do.
     }
 }
+
+private const val RELOAD_CHECK_INTERVAL_MS = 2_000L
 
 private fun findMatches(text: String, query: String): List<IntRange> {
     if (query.isEmpty() || text.isEmpty()) return emptyList()
