@@ -10,6 +10,7 @@ import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.Bookmark
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.MarkdownOutlineParser
+import com.readmd.app.domain.MathMarkup
 import com.readmd.app.domain.MermaidBlocks
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
@@ -206,7 +207,7 @@ class ReaderViewModel(
                         loading = false,
                         title = doc.name,
                         markdown = doc.text,
-                        renderedMarkdown = prepared.markdown,
+                        renderedMarkdown = MathMarkup.prepare(prepared.markdown),
                         diagrams = prepared.diagrams,
                         headings = MarkdownOutlineParser.parse(doc.text),
                         wordCount = ReadingTime.wordCount(doc.text),

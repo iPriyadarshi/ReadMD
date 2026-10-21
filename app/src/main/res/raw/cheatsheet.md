@@ -90,4 +90,17 @@ Three hyphens create a horizontal rule:
 Images inline with `![alt text](url)` are supported for links the app
 can resolve, including images stored next to your file in a picked folder.
 
+## Math
+
+Inline math goes between single dollar signs, like $E = mc^2$ or $x^2 + y^2 = z^2$.
+Prices such as $5 and $10 stay as plain text.
+
+Block math sits between lines containing only `$$`:
+
+$$
+\int_0^1 x^2 \, dx = \frac{1}{3}
+$$
+
+Formulas that can't be parsed show their source instead.
+
 That's it — everything you need to read (and write) Markdown.
