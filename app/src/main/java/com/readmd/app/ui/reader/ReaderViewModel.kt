@@ -75,6 +75,12 @@ class ReaderViewModel(
         viewModelScope.launch { container.recentFiles.setReaderFont(font) }
     }
 
+    suspend fun savedPosition(): Int = container.recentFiles.readingPosition(docId) ?: 0
+
+    fun savePosition(permille: Int) {
+        viewModelScope.launch { container.recentFiles.saveReadingPosition(docId, permille) }
+    }
+
     fun retry() = load()
 
     fun adjustTextScale(steps: Int) {

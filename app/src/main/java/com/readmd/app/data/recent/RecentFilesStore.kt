@@ -9,9 +9,11 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
+import com.readmd.app.domain.ReadingPositions
 import com.readmd.app.domain.TextScale
 import com.readmd.app.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.prefsStore by preferencesDataStore(name = "readmd_prefs")
@@ -106,6 +108,18 @@ class RecentFilesStore(private val context: Context) {
         dataStore.edit { it[KEY_READER_FONT] = font.id }
     }
 
+    /** Last saved scroll position for [docId] in thousandths of the scroll range, or null. */
+    suspend fun readingPosition(docId: String): Int? =
+        ReadingPositions.get(dataStore.data.first()[KEY_POSITIONS].orEmpty(), docId)
+
+    suspend fun saveReadingPosition(docId: String, permille: Int) {
+        dataStore.edit { prefs ->
+            prefs[KEY_POSITIONS] = ReadingPositions.upsert(
+                prefs[KEY_POSITIONS].orEmpty(), docId, permille, System.currentTimeMillis(),
+            )
+        }
+    }
+
     suspend fun setLineSpacing(spacing: LineSpacing) {
         dataStore.edit { it[KEY_LINE_SPACING] = spacing.id }
     }
@@ -126,5 +140,6 @@ class RecentFilesStore(private val context: Context) {
         private val KEY_READER_FONT = stringPreferencesKey("reader_font")
         private val KEY_LINE_SPACING = stringPreferencesKey("reader_line_spacing")
         private val KEY_PAGE_MARGIN = stringPreferencesKey("reader_page_margin")
+        private val KEY_POSITIONS = stringSetPreferencesKey("reading_positions")
     }
 }
