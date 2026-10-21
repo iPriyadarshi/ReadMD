@@ -81,6 +81,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.readmd.app.ReadMdApp
+import com.readmd.app.domain.Bookmarks
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
@@ -239,6 +240,27 @@ fun ReaderScreen(
         drawerContent = {
             TocDrawer(
                 headings = state.headings,
+                bookmarks = state.bookmarks,
+                onAddBookmark = {
+                    val max = renderedScroll.maxValue
+                    val y = renderedScroll.value
+                    val permille = if (max > 0) y * ReadingPositions.FULL / max else 0
+                    val offsets = state.headings.mapIndexedNotNull { i, heading ->
+                        controller.offsetForHeading(i)?.let { heading.text to it }
+                    }
+                    val label = Bookmarks.labelFor(offsets, y.toFloat())
+                        ?: "Position ${permille / 10}%"
+                    viewModel.addBookmark(permille, label)
+                    scope.launch { snackbarHost.showSnackbar("Bookmark added") }
+                },
+                onRemoveBookmark = viewModel::removeBookmark,
+                onSelectBookmark = { bookmark ->
+                    scope.launch {
+                        drawerState.close()
+                        val max = renderedScroll.maxValue
+                        renderedScroll.animateScrollTo(max * bookmark.permille / ReadingPositions.FULL)
+                    }
+                },
                 onSelect = { index ->
                     scope.launch {
                         drawerState.close()
