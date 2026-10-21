@@ -1,12 +1,10 @@
 package com.readmd.app.data
 
-import android.content.Context
 import android.net.Uri
-import android.provider.OpenableColumns
-import com.readmd.app.R
 import com.readmd.app.domain.DocumentStamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.FileNotFoundException
 import java.io.IOException
 
 data class LoadedDocument(
@@ -21,17 +19,19 @@ data class LoadedDocument(
  *  - "res:<name>"   -> a bundled sample in res/raw
  *  - anything else  -> a content:// (or file://) URI string from SAF
  *
- * Designed so a future source (e.g. http) only needs a new prefix branch.
+ * Designed so a future source (e.g. http) only needs a new prefix branch. Raw access goes
+ * through [DocumentSource], and failure wording through [DocumentMessages].
  */
-class DocumentRepository(private val context: Context) {
-
-    private val resolver get() = context.contentResolver
+class DocumentRepository(
+    private val source: DocumentSource,
+    private val messages: DocumentMessages,
+) {
 
     suspend fun read(id: String): LoadedDocument = withContext(Dispatchers.IO) {
         if (id.startsWith(BUNDLED_PREFIX)) {
             readBundled(id.removePrefix(BUNDLED_PREFIX))
         } else {
-            readContentUri(Uri.parse(id))
+            readFromSource(id)
         }
     }
 
@@ -42,16 +42,16 @@ class DocumentRepository(private val context: Context) {
                 .removeSuffix(".md")
                 .replaceFirstChar { it.uppercase() }
         } else {
-            queryDisplayName(Uri.parse(id)) ?: "Untitled.md"
+            source.displayName(id) ?: UNTITLED
         }
     }
 
     /** True when [id] can be opened (used to detect broken links before navigating). */
     suspend fun exists(id: String): Boolean = withContext(Dispatchers.IO) {
         if (id.startsWith(BUNDLED_PREFIX)) {
-            context.resources.getIdentifier(id.removePrefix(BUNDLED_PREFIX), "raw", context.packageName) != 0
+            source.bundledText(id.removePrefix(BUNDLED_PREFIX)) != null
         } else {
-            queryDisplayName(Uri.parse(id)) != null
+            source.displayName(id) != null
         }
     }
 
@@ -59,43 +59,14 @@ class DocumentRepository(private val context: Context) {
      * Keeps persistent access to a SAF uri so recents keep working, including write access
      * when the provider granted it (needed for editing). Falls back to read-only.
      */
-    fun takePersistablePermission(uri: Uri) {
-        val read = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-        val write = android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-        try {
-            resolver.takePersistableUriPermission(uri, read or write)
-        } catch (_: Exception) {
-            try {
-                resolver.takePersistableUriPermission(uri, read)
-            } catch (_: Exception) {
-                // Not all providers offer persistable grants; in-memory grant is
-                // still valid for this session.
-            }
-        }
-    }
+    fun takePersistablePermission(uri: Uri) = source.takePersistablePermission(uri.toString())
 
     /**
      * The document's current modified time and size, or null when they can't be read (bundled
      * samples, providers that don't report them, files that are gone).
      */
     suspend fun stamp(id: String): DocumentStamp? = withContext(Dispatchers.IO) {
-        if (id.startsWith(BUNDLED_PREFIX)) return@withContext null
-        runCatching {
-            resolver.query(
-                Uri.parse(id),
-                arrayOf(
-                    android.provider.DocumentsContract.Document.COLUMN_LAST_MODIFIED,
-                    android.provider.DocumentsContract.Document.COLUMN_SIZE,
-                ),
-                null, null, null,
-            )?.use { c ->
-                if (!c.moveToFirst()) return@use null
-                DocumentStamp(
-                    lastModified = if (c.isNull(0)) null else c.getLong(0),
-                    size = if (c.isNull(1)) null else c.getLong(1),
-                ).takeUnless { it.isEmpty }
-            }
-        }.getOrNull()
+        if (id.startsWith(BUNDLED_PREFIX)) null else source.stamp(id)
     }
 
     /** True for documents that live in a file the user picked (bundled samples are read-only). */
@@ -106,48 +77,35 @@ class DocumentRepository(private val context: Context) {
      * @throws IOException with a readable message when the file can't be written
      */
     suspend fun write(id: String, text: String) = withContext(Dispatchers.IO) {
-        if (!isEditable(id)) throw IOException(context.getString(R.string.error_bundled_readonly))
+        if (!isEditable(id)) throw IOException(messages.bundledReadOnly())
         try {
-            val stream = resolver.openOutputStream(Uri.parse(id), "wt")
-                ?: throw IOException(context.getString(R.string.error_write_unavailable))
+            val stream = source.openForWriting(id) ?: throw IOException(messages.writeUnavailable())
             stream.use { it.write(text.toByteArray(Charsets.UTF_8)) }
         } catch (e: SecurityException) {
-            throw IOException(context.getString(R.string.error_write_permission))
-        } catch (e: java.io.FileNotFoundException) {
-            throw IOException(context.getString(R.string.error_write_readonly))
+            throw IOException(messages.writePermission())
+        } catch (e: FileNotFoundException) {
+            throw IOException(messages.writeReadOnly())
         }
     }
 
     private fun readBundled(name: String): LoadedDocument {
-        val resId = context.resources.getIdentifier(name, "raw", context.packageName)
-        if (resId == 0) throw IOException(context.getString(R.string.error_bundled_missing, name))
-        val text = context.resources.openRawResource(resId)
-            .bufferedReader(Charsets.UTF_8)
-            .use { it.readText() }
+        val text = source.bundledText(name) ?: throw IOException(messages.bundledMissing(name))
         return LoadedDocument(id = BUNDLED_PREFIX + name, name = name, text = text)
     }
 
-    private fun readContentUri(uri: Uri): LoadedDocument {
-        val text = runCatching {
-            if (uri.scheme == "file") {
-                uri.path?.let { java.io.File(it).readText(Charsets.UTF_8) }
-            } else {
-                resolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
-            }
-        }.getOrElse { throw IOException(context.getString(R.string.error_cannot_read, it.message.orEmpty())) }
-            ?: throw IOException(context.getString(R.string.error_cannot_open))
+    private fun readFromSource(id: String): LoadedDocument {
+        val text = try {
+            source.openForReading(id)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+        } catch (e: Exception) {
+            throw IOException(messages.cannotRead(e.message.orEmpty()))
+        } ?: throw IOException(messages.cannotOpen())
 
-        val name = queryDisplayName(uri) ?: uri.lastPathSegment ?: "Untitled.md"
-        return LoadedDocument(id = uri.toString(), name = name, text = text)
+        val name = source.displayName(id) ?: source.lastPathSegment(id) ?: UNTITLED
+        return LoadedDocument(id = id, name = name, text = text)
     }
-
-    private fun queryDisplayName(uri: Uri): String? = runCatching {
-        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-            if (c.moveToFirst() && !c.isNull(0)) c.getString(0) else null
-        }
-    }.getOrNull()
 
     companion object {
         const val BUNDLED_PREFIX = "res:"
+        private const val UNTITLED = "Untitled.md"
     }
 }
