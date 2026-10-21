@@ -54,6 +54,7 @@ jobs:
 
       - name: Build signed release APK
         env:
+          RELEASE_SIGNING_REQUIRED: "true"
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -116,6 +117,12 @@ jobs:
           fi
 
           "$APK_SIGNER" verify --verbose ReadMD.apk
+
+          # A release must carry the real key, never the debug fallback used for local builds.
+          if "$APK_SIGNER" verify --print-certs ReadMD.apk | grep -qi "Android Debug"; then
+            echo "ReadMD.apk is signed with the debug key"
+            exit 1
+          fi
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
