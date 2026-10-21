@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -38,6 +39,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Html
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Remove
@@ -241,6 +245,18 @@ fun ReaderScreen(
     }
 
     val anchors = remember(state.headings) { HeadingAnchors.anchors(state.headings) }
+    val speech = remember { SpeechController(context) }
+    DisposableEffect(speech) { onDispose { speech.release() } }
+    LaunchedEffect(speech.error) {
+        speech.error?.let {
+            snackbarHost.showSnackbar(it)
+            speech.error = null
+        }
+    }
+    // Speech stops when the document is edited, switched to the raw view or the app is backgrounded.
+    LaunchedEffect(state.editing, state.rawMode) {
+        if (state.editing || state.rawMode) speech.stop()
+    }
     var editorMenuOpen by remember { mutableStateOf(false) }
     var moreMenuOpen by remember { mutableStateOf(false) }
     val printer = remember { DocumentPrinter(context) }
@@ -364,7 +380,10 @@ fun ReaderScreen(
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) viewModel.saveIfAutosaving()
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) {
+                viewModel.saveIfAutosaving()
+                speech.pause()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -459,6 +478,19 @@ fun ReaderScreen(
     ) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHost) },
+            bottomBar = {
+                if (speech.state != SpeechState.IDLE) {
+                    SpeechBar(
+                        state = speech.state,
+                        position = speech.position,
+                        total = speech.total,
+                        onPlayPause = {
+                            if (speech.state == SpeechState.PLAYING) speech.pause() else speech.resume()
+                        },
+                        onStop = speech::stop,
+                    )
+                }
+            },
             topBar = {
                 if (state.editing) {
                     TopAppBar(
@@ -710,6 +742,15 @@ fun ReaderScreen(
                                     onDismissRequest = { moreMenuOpen = false },
                                 ) {
                                     DropdownMenuItem(
+                                        text = { Text("Read aloud") },
+                                        enabled = state.markdown != null && !state.rawMode,
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null) },
+                                        onClick = {
+                                            moreMenuOpen = false
+                                            speech.start(controller.textView?.text?.toString().orEmpty())
+                                        },
+                                    )
+                                    DropdownMenuItem(
                                         text = { Text("Edit") },
                                         enabled = viewModel.canEdit && state.markdown != null,
                                         leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
@@ -890,6 +931,40 @@ fun ReaderScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Play/pause and stop controls shown while the document is being read aloud. */
+@Composable
+private fun SpeechBar(
+    state: SpeechState,
+    position: Int,
+    total: Int,
+    onPlayPause: () -> Unit,
+    onStop: () -> Unit,
+) {
+    androidx.compose.material3.Surface(tonalElevation = 3.dp) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+        ) {
+            IconButton(onClick = onPlayPause) {
+                Icon(
+                    imageVector = if (state == SpeechState.PLAYING) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (state == SpeechState.PLAYING) "Pause reading" else "Resume reading",
+                )
+            }
+            IconButton(onClick = onStop) {
+                Icon(Icons.Default.Stop, contentDescription = "Stop reading")
+            }
+            Text(
+                text = "Reading aloud · part ${position + 1} of $total",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(start = 8.dp),
+            )
         }
     }
 }
