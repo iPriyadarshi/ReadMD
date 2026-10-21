@@ -87,6 +87,7 @@ import com.readmd.app.domain.Footnotes
 import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
+import com.readmd.app.domain.MarkdownTables
 import com.readmd.app.domain.MermaidBlocks
 import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.ReadingPositions
@@ -220,14 +221,18 @@ fun ReaderScreen(
         if (state.frontMatter.isEmpty()) controller.topInset = 0f
     }
 
+    var tableShown by remember { mutableStateOf<Int?>(null) }
     var imageShown by remember { mutableStateOf<String?>(null) }
     var diagramShown by remember { mutableStateOf<Int?>(null) }
     val onLinkClick: (String) -> Unit = { link ->
         val diagram = MermaidBlocks.diagramIndex(link)
+        val table = MarkdownTables.tableIndex(link)
         val footnote = Footnotes.referenceNumber(link)
         val footnoteBack = Footnotes.backNumber(link)
         if (diagram != null) {
             diagramShown = diagram
+        } else if (table != null) {
+            tableShown = table
         } else if (footnote != null || footnoteBack != null) {
             // A marker jumps to the "back" link in its definition, and that link jumps
             // back to the first marker.
@@ -245,6 +250,12 @@ fun ReaderScreen(
                 is LinkResult.Failed -> snackbarHost.showSnackbar(result.text)
                 is LinkResult.External -> openExternalLink(context, result.link)
             }
+        }
+    }
+
+    tableShown?.let { index ->
+        state.tables.getOrNull(index)?.let { table ->
+            TableDialog(table = table, onDismiss = { tableShown = null })
         }
     }
 
