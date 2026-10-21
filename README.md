@@ -97,6 +97,15 @@ version. A tag that doesn't match is rejected before anything is built. Local bu
 `dev` with code `1`; you can set either with `-PversionName=` and `-PversionCode=`.
 `bash scripts/test-version-from-tag.sh` checks the rules.
 
+### Signing
+
+Release builds are signed with the key in `release.keystore`, using the environment variables
+`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`. The release
+workflow restores the keystore and these values from repository secrets. When any of them is
+missing (a fork, or a local `gradlew assembleRelease`), the build falls back to the debug key,
+so you still get an APK you can install. The workflow sets `RELEASE_SIGNING_REQUIRED=true` and
+checks the finished APK, so a published release can never be debug-signed.
+
 ## Tests
 
 Unit tests (JVM, no device needed):

@@ -20,18 +20,36 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // The real signing key comes from release.keystore and three environment variables (the
+    // release workflow provides them from repository secrets). Without them, for example in a
+    // fork or on a developer machine, release builds fall back to the debug key so they still
+    // produce an installable APK. The release workflow sets RELEASE_SIGNING_REQUIRED, which
+    // turns a missing secret into a build failure instead of a debug-signed release.
+    val releaseKeystore = rootProject.file("release.keystore")
+    val releaseSigningAvailable = releaseKeystore.exists() &&
+        listOf("ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD")
+            .all { !System.getenv(it).isNullOrEmpty() }
+    if (System.getenv("RELEASE_SIGNING_REQUIRED") == "true" && !releaseSigningAvailable) {
+        throw GradleException(
+            "Release signing is required but release.keystore or one of ANDROID_KEYSTORE_PASSWORD, " +
+                "ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD is missing.",
+        )
+    }
+
     signingConfigs {
-        create("release") {
-            storeFile = rootProject.file("release.keystore")
-            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-            keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+        if (releaseSigningAvailable) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName(if (releaseSigningAvailable) "release" else "debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
