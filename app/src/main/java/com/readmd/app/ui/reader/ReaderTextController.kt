@@ -96,8 +96,16 @@ class ReaderTextController {
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, BASE_TEXT_SIZE_SP * percent / 100f)
     }
 
-    /** Pixel y-offset of a heading inside the rendered text, or null. */
-    fun offsetForHeading(index: Int): Float? {
+    /**
+     * Height of anything laid out above the text view inside the same scroll container
+     * (the front matter header), added to every offset handed back for scrolling.
+     */
+    var topInset: Float = 0f
+
+    /** Pixel y-offset of a heading in the scroll container, or null. */
+    fun offsetForHeading(index: Int): Float? = textOffsetForHeading(index)?.plus(topInset)
+
+    private fun textOffsetForHeading(index: Int): Float? {
         val cached = headingY.getOrNull(index)
         if (cached != null) return cached
 
@@ -162,13 +170,13 @@ class ReaderTextController {
         clearSearchSpans(text)
     }
 
-    /** Pixel y-offset of a match inside the rendered text, or null. */
+    /** Pixel y-offset of a match in the scroll container, or null. */
     fun pixelOffsetForMatch(matches: List<IntRange>, index: Int): Float? {
         val tv = textView ?: return null
         val layout = tv.layout ?: return null
         val range = matches.getOrNull(index) ?: return null
         if (range.first >= tv.text.length) return null
-        return layout.getLineTop(layout.getLineForOffset(range.first)).toFloat()
+        return layout.getLineTop(layout.getLineForOffset(range.first)).toFloat() + topInset
     }
 
     private fun clearSearchSpans(text: Spannable) {

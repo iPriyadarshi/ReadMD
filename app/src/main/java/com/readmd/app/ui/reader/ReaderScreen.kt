@@ -73,6 +73,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
@@ -213,6 +214,11 @@ fun ReaderScreen(
     }
 
     val snackbarHost = remember { SnackbarHostState() }
+    var frontMatterExpanded by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(state.frontMatter.isEmpty()) {
+        if (state.frontMatter.isEmpty()) controller.topInset = 0f
+    }
+
     var diagramShown by remember { mutableStateOf<Int?>(null) }
     val onLinkClick: (String) -> Unit = { link ->
         val diagram = MermaidBlocks.diagramIndex(link)
@@ -538,6 +544,17 @@ fun ReaderScreen(
                                     .verticalScroll(renderedScroll)
                                     .padding(horizontal = state.pageMargin.dp.dp, vertical = 8.dp),
                             ) {
+                                if (state.frontMatter.isNotEmpty()) {
+                                    FrontMatterHeader(
+                                        entries = state.frontMatter,
+                                        expanded = frontMatterExpanded,
+                                        onToggle = { frontMatterExpanded = !frontMatterExpanded },
+                                        modifier = Modifier.onSizeChanged {
+                                            // Scroll targets are measured from the top of the column.
+                                            controller.topInset = it.height.toFloat()
+                                        },
+                                    )
+                                }
                                 MarkdownText(
                                     markdown = state.renderedMarkdown ?: state.markdown ?: "",
                                     headings = state.headings,
