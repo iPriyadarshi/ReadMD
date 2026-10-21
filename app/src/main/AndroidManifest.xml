@@ -53,6 +53,15 @@
                 <data android:mimeType="text/x-markdown" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+
+            <!-- Appear in the share sheet for text and markdown files -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/markdown" />
+                <data android:mimeType="text/x-markdown" />
+            </intent-filter>
         </activity>
     </application>
 
