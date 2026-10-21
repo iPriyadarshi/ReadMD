@@ -164,6 +164,13 @@
     <string name="error_cannot_read">यह फ़ाइल पढ़ी नहीं जा सकती: %1$s</string>
     <string name="error_cannot_open">यह फ़ाइल खोली नहीं जा सकती</string>
     <string name="error_bundled_missing">बंडल किया गया दस्तावेज़ “%1$s” नहीं मिला</string>
+    <string name="crash_reports_setting">क्रैश रिपोर्ट सहेजें</string>
+    <string name="crash_dialog_title">ReadMD अप्रत्याशित रूप से बंद हो गया</string>
+    <string name="crash_dialog_message">इस डिवाइस पर एक रिपोर्ट सहेजी गई है। इसमें केवल तकनीकी जानकारी है: कोई दस्तावेज़, फ़ाइल नाम या पथ नहीं। समस्या ठीक करने में मदद के लिए इसे साझा करें?</string>
+    <string name="crash_share">रिपोर्ट साझा करें</string>
+    <string name="crash_dismiss">बंद करें</string>
+    <string name="crash_share_subject">ReadMD क्रैश रिपोर्ट</string>
+    <string name="crash_share_chooser">रिपोर्ट भेजें</string>
     <string name="widget_title">हाल की फ़ाइलें</string>
     <string name="widget_empty">कोई हाल की फ़ाइल नहीं</string>
     <string name="widget_description">आपके द्वारा हाल में पढ़ी गई markdown फ़ाइलों तक त्वरित पहुँच</string>

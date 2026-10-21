@@ -164,6 +164,13 @@
     <string name="error_cannot_read">Cannot read this file: %1$s</string>
     <string name="error_cannot_open">Cannot open this file</string>
     <string name="error_bundled_missing">Bundled document “%1$s” not found</string>
+    <string name="crash_reports_setting">Save crash reports</string>
+    <string name="crash_dialog_title">ReadMD closed unexpectedly</string>
+    <string name="crash_dialog_message">A report was saved on this device. It holds technical details only: no documents, file names or paths. Share it to help fix the problem?</string>
+    <string name="crash_share">Share report</string>
+    <string name="crash_dismiss">Dismiss</string>
+    <string name="crash_share_subject">ReadMD crash report</string>
+    <string name="crash_share_chooser">Send report</string>
     <string name="widget_title">Recent files</string>
     <string name="widget_empty">No recent files</string>
     <string name="widget_description">Quick access to the markdown files you read last</string>

@@ -1,9 +1,12 @@
 package com.readmd.app
 
 import android.app.Application
+import android.os.Build
 import com.readmd.app.data.ShortcutPublisher
 import com.readmd.app.data.recent.RecentEntry
 import com.readmd.app.di.AppContainer
+import com.readmd.app.domain.AppInfo
+import com.readmd.app.domain.CrashReport
 import com.readmd.app.domain.ShortcutLabels
 import com.readmd.app.widget.RecentsWidgetProvider
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +24,11 @@ class ReadMdApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+
+        installCrashHandler()
+        appScope.launch {
+            container.recentFiles.crashReportsEnabled.collect { container.crashes.enabled = it }
+        }
 
         // Keep the launcher shortcuts in step with the recent files.
         val shortcuts = ShortcutPublisher(this)
@@ -41,4 +49,31 @@ class ReadMdApp : Application() {
     }
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /**
+     * Saves a report of any crash on this device, then lets the system handle it as usual.
+     * Nothing is sent anywhere; see [CrashStore].
+     */
+    private fun installCrashHandler() {
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            // Reporting must never make a crash worse.
+            runCatching {
+                val now = System.currentTimeMillis()
+                container.crashes.save(CrashReport.format(error, thread.name, appInfo(), now), now)
+            }
+            previous?.uncaughtException(thread, error)
+        }
+    }
+
+    private fun appInfo(): AppInfo {
+        val info = packageManager.getPackageInfo(packageName, 0)
+        return AppInfo(
+            versionName = info.versionName.orEmpty(),
+            versionCode = info.longVersionCode,
+            androidRelease = Build.VERSION.RELEASE,
+            sdk = Build.VERSION.SDK_INT,
+            device = "${Build.MANUFACTURER} ${Build.MODEL}",
+        )
+    }
 }

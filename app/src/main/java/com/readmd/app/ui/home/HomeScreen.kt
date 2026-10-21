@@ -70,6 +70,9 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -114,6 +117,8 @@ fun HomeScreen(
     var createCollectionOpen by remember { mutableStateOf(false) }
     var renameTarget by remember { mutableStateOf<DocCollection?>(null) }
     var deleteTarget by remember { mutableStateOf<DocCollection?>(null) }
+    val pendingCrash by viewModel.pendingCrash.collectAsState()
+    val crashReportsEnabled by viewModel.crashReportsEnabled.collectAsState()
     val search by viewModel.search.collectAsState()
     var folderSearchOpen by remember { mutableStateOf(false) }
     val favorites by viewModel.favorites.collectAsState()
@@ -248,6 +253,12 @@ fun HomeScreen(
                                 },
                             )
                         }
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.crash_reports_setting)) },
+                            onClick = { viewModel.setCrashReportsEnabled(!crashReportsEnabled) },
+                            trailingIcon = { Switch(checked = crashReportsEnabled, onCheckedChange = null) },
+                        )
                     }
                 },
             )
@@ -599,6 +610,29 @@ fun HomeScreen(
         }
     }
 
+    // A crash on the previous run: offer to share its report, or throw it away.
+    pendingCrash?.let { report ->
+        val context = androidx.compose.ui.platform.LocalContext.current
+        AlertDialog(
+            onDismissRequest = { viewModel.finishCrashReport() },
+            title = { Text(stringResource(R.string.crash_dialog_title)) },
+            text = { Text(stringResource(R.string.crash_dialog_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        shareCrashReport(context, report)
+                        viewModel.finishCrashReport()
+                    },
+                ) { Text(stringResource(R.string.crash_share)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.finishCrashReport() }) {
+                    Text(stringResource(R.string.crash_dismiss))
+                }
+            },
+        )
+    }
+
     // Collection dialogs
     if (createCollectionOpen || createCollectionFor != null) {
         val forDoc = createCollectionFor
@@ -657,5 +691,22 @@ fun HomeScreen(
             },
             onDismiss = { assignTarget = null },
         )
+    }
+}
+
+/** Opens the share sheet with a crash report, so the user decides where, if anywhere, it goes. */
+private fun shareCrashReport(context: android.content.Context, report: String) {
+    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(android.content.Intent.EXTRA_SUBJECT, context.getString(R.string.crash_share_subject))
+        putExtra(android.content.Intent.EXTRA_TEXT, report)
+    }
+    try {
+        context.startActivity(
+            android.content.Intent.createChooser(send, context.getString(R.string.crash_share_chooser))
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    } catch (_: android.content.ActivityNotFoundException) {
+        // No app can receive text; the report is discarded either way.
     }
 }

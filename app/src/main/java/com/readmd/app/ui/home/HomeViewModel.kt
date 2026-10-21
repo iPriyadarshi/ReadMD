@@ -16,16 +16,19 @@ import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.TextSearch
 import com.readmd.app.ui.theme.AccentColor
 import com.readmd.app.ui.theme.ThemeMode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class SampleDoc(
     val id: String,
@@ -118,6 +121,10 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
 
     init {
         viewModelScope.launch {
+            val enabled = container.recentFiles.crashReportsEnabled.first()
+            if (enabled) _pendingCrash.value = withContext(Dispatchers.IO) { container.crashes.latest() }
+        }
+        viewModelScope.launch {
             container.recentFiles.folderTree.collect { uri ->
                 if (uri == null) {
                     folderState.value = null
@@ -188,6 +195,30 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
                 container.recentFiles.removeFromCollection(collectionId, docId)
             }
         }
+    }
+
+    /** The report of a crash on the previous run, waiting for the user to share or dismiss it. */
+    private val _pendingCrash = MutableStateFlow<String?>(null)
+    val pendingCrash = _pendingCrash.asStateFlow()
+
+    val crashReportsEnabled = container.recentFiles.crashReportsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun setCrashReportsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            container.recentFiles.setCrashReportsEnabled(enabled)
+            if (!enabled) {
+                // Turning reporting off also forgets anything already saved.
+                withContext(Dispatchers.IO) { container.crashes.clear() }
+                _pendingCrash.value = null
+            }
+        }
+    }
+
+    /** Called once the report has been shared or dismissed. */
+    fun finishCrashReport() {
+        _pendingCrash.value = null
+        viewModelScope.launch(Dispatchers.IO) { container.crashes.clear() }
     }
 
     val favorites = container.recentFiles.favorites
