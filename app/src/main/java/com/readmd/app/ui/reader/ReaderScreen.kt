@@ -55,6 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -72,8 +73,13 @@ import com.readmd.app.domain.HeadingNode
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
+import com.readmd.app.domain.ReadingPositions
 import com.readmd.app.domain.TextScale
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -140,6 +146,29 @@ fun ReaderScreen(
 
     LaunchedEffect(searchActive) {
         if (searchActive) focusRequester.requestFocus()
+    }
+
+    // Restore the saved reading position once the first render has been laid out,
+    // then keep saving it (as a fraction of the scroll range) while the user reads.
+    var positionRestored by remember { mutableStateOf(false) }
+    LaunchedEffect(renderedGeneration) {
+        if (positionRestored || renderedGeneration == 0) return@LaunchedEffect
+        val saved = viewModel.savedPosition()
+        if (saved > 0) {
+            val max = withTimeoutOrNull(1_000) {
+                snapshotFlow { renderedScroll.maxValue }.first { it > 0 }
+            }
+            if (max != null) renderedScroll.scrollTo(max * saved / ReadingPositions.FULL)
+        }
+        positionRestored = true
+    }
+    LaunchedEffect(positionRestored) {
+        if (!positionRestored) return@LaunchedEffect
+        snapshotFlow { renderedScroll.value }.collectLatest { value ->
+            delay(400)
+            val max = renderedScroll.maxValue
+            if (max > 0) viewModel.savePosition(value * ReadingPositions.FULL / max)
+        }
     }
 
     BackHandler(enabled = drawerState.isOpen) {
