@@ -58,6 +58,21 @@ The debug APK lands in `app/build/outputs/apk/debug/`.
 
 ## Tests
 
+Unit tests (JVM, no device needed):
+
 ```
 gradlew :app:testDebugUnitTest
 ```
+
+UI tests drive the real app with Jetpack Compose test APIs. They open the bundled
+"Welcome to ReadMD" sample and cover the home screen, the contents drawer, in-document
+search and the raw/rendered toggle. They need a connected device or a running emulator
+(API 26 or newer):
+
+```
+gradlew :app:connectedDebugAndroidTest
+```
+
+They are in `app/src/androidTest` and read their expected text from the app's string
+resources, so they pass in any device language. They share the app's saved data (recents,
+settings), so run them on a test device or emulator rather than your daily phone.
