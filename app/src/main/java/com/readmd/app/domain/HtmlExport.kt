@@ -113,6 +113,8 @@ object HtmlExport {
     }
 
     private const val STYLE = """
+@page { size: A4; margin: 18mm 16mm; }
+@media screen { body { max-width: 50em; margin: 0 auto; padding: 1.5rem 1rem; } }
 body { font-family: sans-serif; font-size: 11pt; line-height: 1.5; color: #1b1b1f; margin: 0; }
 h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin: 1.2em 0 0.4em; page-break-after: avoid; }
 h1 { font-size: 1.9em; border-bottom: 1px solid #ccc; padding-bottom: 0.2em; }

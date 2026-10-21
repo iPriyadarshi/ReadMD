@@ -19,6 +19,13 @@ class HtmlExportTest {
     }
 
     @Test
+    fun `the page sets print margins and a readable width on screen`() {
+        val html = render("Hello")
+        assertTrue(html.contains("@page { size: A4; margin: 18mm 16mm; }"))
+        assertTrue(html.contains("@media screen { body { max-width: 50em;"))
+    }
+
+    @Test
     fun `headings emphasis lists and code are rendered`() {
         val html = render("# Title\n\n**bold** and *it*\n\n- a\n- b\n\n```kotlin\nval x = 1\n```")
         assertTrue(html.contains("<h1>Title</h1>"))
