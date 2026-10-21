@@ -44,6 +44,15 @@ class DocumentRepository(private val context: Context) {
         }
     }
 
+    /** True when [id] can be opened (used to detect broken links before navigating). */
+    suspend fun exists(id: String): Boolean = withContext(Dispatchers.IO) {
+        if (id.startsWith(BUNDLED_PREFIX)) {
+            context.resources.getIdentifier(id.removePrefix(BUNDLED_PREFIX), "raw", context.packageName) != 0
+        } else {
+            queryDisplayName(Uri.parse(id)) != null
+        }
+    }
+
     /** Keeps persistent read access to a SAF uri so recents keep working. */
     fun takePersistablePermission(uri: Uri) {
         try {

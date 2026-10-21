@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -44,6 +45,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextField
@@ -97,6 +100,9 @@ import kotlin.math.roundToInt
 fun ReaderScreen(
     docId: String,
     onBack: () -> Unit,
+    onOpenLinked: (String) -> Unit,
+    canGoForward: Boolean,
+    onForward: () -> Unit,
     initialQuery: String? = null,
 ) {
     val context = LocalContext.current
@@ -204,6 +210,21 @@ fun ReaderScreen(
         onDispose { view.keepScreenOn = false }
     }
 
+    val snackbarHost = remember { SnackbarHostState() }
+    val onLinkClick: (String) -> Unit = { link ->
+        scope.launch {
+            when (val result = viewModel.resolveLink(link)) {
+                is LinkResult.Open -> onOpenLinked(result.docId)
+                is LinkResult.Failed -> snackbarHost.showSnackbar(result.text)
+                is LinkResult.External -> openExternalLink(context, result.link)
+            }
+        }
+    }
+
+    // Registered first so the drawer and search handlers below take priority; lets the
+    // system back gesture go through onBack so forward history is recorded.
+    BackHandler(onBack = onBack)
+
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
     }
@@ -232,6 +253,7 @@ fun ReaderScreen(
         },
     ) {
         Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHost) },
             topBar = {
                 if (searchActive) {
                     TopAppBar(
@@ -327,6 +349,11 @@ fun ReaderScreen(
                                         Icons.AutoMirrored.Filled.FormatListBulleted,
                                         contentDescription = "Table of contents",
                                     )
+                                }
+                            }
+                            if (canGoForward) {
+                                IconButton(onClick = onForward) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Forward")
                                 }
                             }
                             IconButton(onClick = viewModel::toggleFavorite) {
@@ -486,6 +513,7 @@ fun ReaderScreen(
                                     textScale = state.textScale,
                                     font = state.font,
                                     lineSpacing = state.lineSpacing,
+                                    onLinkClick = onLinkClick,
                                 )
                             }
                         }
@@ -543,6 +571,19 @@ private fun <T> ChoiceItems(
                 }
             },
         )
+    }
+}
+
+/** Hands web, mail and other absolute links to whichever app handles them. */
+private fun openExternalLink(context: android.content.Context, link: String) {
+    if (link.startsWith("#")) return
+    try {
+        context.startActivity(
+            android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link))
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    } catch (_: android.content.ActivityNotFoundException) {
+        // No app can open this link; nothing to do.
     }
 }
 
