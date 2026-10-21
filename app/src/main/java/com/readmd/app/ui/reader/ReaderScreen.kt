@@ -97,6 +97,7 @@ import kotlin.math.roundToInt
 fun ReaderScreen(
     docId: String,
     onBack: () -> Unit,
+    initialQuery: String? = null,
 ) {
     val context = LocalContext.current
     val container = (context.applicationContext as ReadMdApp).container
@@ -115,8 +116,10 @@ fun ReaderScreen(
         controller.onRendered = { renderedGeneration++ }
     }
 
-    var searchActive by rememberSaveable { mutableStateOf(false) }
-    var query by rememberSaveable { mutableStateOf("") }
+    // Opening from a folder search starts with the search bar showing the query,
+    // which scrolls to the first match once the document has rendered.
+    var searchActive by rememberSaveable { mutableStateOf(initialQuery != null) }
+    var query by rememberSaveable { mutableStateOf(initialQuery.orEmpty()) }
     var currentMatch by remember { mutableIntStateOf(0) }
     var textSizeMenuOpen by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -163,7 +166,7 @@ fun ReaderScreen(
     var positionRestored by remember { mutableStateOf(false) }
     LaunchedEffect(renderedGeneration) {
         if (positionRestored || renderedGeneration == 0) return@LaunchedEffect
-        val saved = viewModel.savedPosition()
+        val saved = if (initialQuery != null) 0 else viewModel.savedPosition()
         if (saved > 0) {
             val max = withTimeoutOrNull(1_000) {
                 snapshotFlow { renderedScroll.maxValue }.first { it > 0 }

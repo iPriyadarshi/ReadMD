@@ -8,9 +8,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.readmd.app.ReadMdApp
 import com.readmd.app.ui.home.HomeScreen
 import com.readmd.app.ui.home.HomeViewModel
@@ -63,16 +65,31 @@ fun ReadMdRoot(
                 val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.factory())
                 HomeScreen(
                     viewModel = homeViewModel,
-                    onOpenDoc = { id ->
-                        navController.navigate("reader/${encodeDocId(id)}")
+                    onOpenDoc = { id, query ->
+                        val route = "reader/${encodeDocId(id)}"
+                        navController.navigate(
+                            if (query.isNullOrEmpty()) route else "$route?q=${encodeDocId(query)}",
+                        )
                     },
                 )
             }
-            composable(route = "reader/{docId}") { entry ->
+            composable(
+                route = "reader/{docId}?q={q}",
+                arguments = listOf(
+                    navArgument("q") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { entry ->
                 val rawArg = entry.arguments?.getString("docId").orEmpty()
                 val docId = runCatching { decodeDocId(rawArg) }.getOrDefault(rawArg)
+                val initialQuery = entry.arguments?.getString("q")
+                    ?.let { runCatching { decodeDocId(it) }.getOrNull() }
                 ReaderScreen(
                     docId = docId,
+                    initialQuery = initialQuery,
                     onBack = { navController.popBackStack() },
                 )
             }
