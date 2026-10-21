@@ -3,6 +3,7 @@ package com.readmd.app.data
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.readmd.app.R
 import com.readmd.app.domain.DocumentStamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -105,21 +106,21 @@ class DocumentRepository(private val context: Context) {
      * @throws IOException with a readable message when the file can't be written
      */
     suspend fun write(id: String, text: String) = withContext(Dispatchers.IO) {
-        if (!isEditable(id)) throw IOException("Bundled samples can't be edited")
+        if (!isEditable(id)) throw IOException(context.getString(R.string.error_bundled_readonly))
         try {
             val stream = resolver.openOutputStream(Uri.parse(id), "wt")
-                ?: throw IOException("This file can't be opened for writing")
+                ?: throw IOException(context.getString(R.string.error_write_unavailable))
             stream.use { it.write(text.toByteArray(Charsets.UTF_8)) }
         } catch (e: SecurityException) {
-            throw IOException("No permission to change this file. Open it from a folder or with the file picker.")
+            throw IOException(context.getString(R.string.error_write_permission))
         } catch (e: java.io.FileNotFoundException) {
-            throw IOException("This file can't be changed (it may be read-only)")
+            throw IOException(context.getString(R.string.error_write_readonly))
         }
     }
 
     private fun readBundled(name: String): LoadedDocument {
         val resId = context.resources.getIdentifier(name, "raw", context.packageName)
-        if (resId == 0) throw IOException("Bundled document \"$name\" not found")
+        if (resId == 0) throw IOException(context.getString(R.string.error_bundled_missing, name))
         val text = context.resources.openRawResource(resId)
             .bufferedReader(Charsets.UTF_8)
             .use { it.readText() }
@@ -133,8 +134,8 @@ class DocumentRepository(private val context: Context) {
             } else {
                 resolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
             }
-        }.getOrElse { throw IOException("Cannot read this file: ${it.message}") }
-            ?: throw IOException("Cannot open this file")
+        }.getOrElse { throw IOException(context.getString(R.string.error_cannot_read, it.message.orEmpty())) }
+            ?: throw IOException(context.getString(R.string.error_cannot_open))
 
         val name = queryDisplayName(uri) ?: uri.lastPathSegment ?: "Untitled.md"
         return LoadedDocument(id = uri.toString(), name = name, text = text)

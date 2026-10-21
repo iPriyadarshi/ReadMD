@@ -1,11 +1,14 @@
 package com.readmd.app.data
 
+import androidx.annotation.StringRes
+import com.readmd.app.R
+
 /** Sorting options for the picked-folder file list. */
-enum class FolderSort(val id: String, val label: String) {
-    NAME_ASC("NAME_ASC", "Name A\u2013Z"),
-    NAME_DESC("NAME_DESC", "Name Z\u2013A"),
-    NEWEST("NEWEST", "Newest first"),
-    OLDEST("OLDEST", "Oldest first");
+enum class FolderSort(val id: String, @StringRes val labelRes: Int) {
+    NAME_ASC("NAME_ASC", R.string.sort_name_asc),
+    NAME_DESC("NAME_DESC", R.string.sort_name_desc),
+    NEWEST("NEWEST", R.string.sort_newest),
+    OLDEST("OLDEST", R.string.sort_oldest);
 
     fun apply(entries: List<FolderEntry>): List<FolderEntry> = when (this) {
         NAME_ASC -> entries.sortedBy { it.name.lowercase() }

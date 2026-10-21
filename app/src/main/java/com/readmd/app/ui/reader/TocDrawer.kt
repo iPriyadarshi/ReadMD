@@ -1,5 +1,7 @@
 package com.readmd.app.ui.reader
 
+import com.readmd.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -45,13 +47,13 @@ fun TocDrawer(
         LazyColumn {
             item(key = "contents-title") {
                 Text(
-                    text = "Contents",
+                    text = stringResource(R.string.toc_title),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 2.dp),
                 )
                 if (headings.isNotEmpty()) {
                     Text(
-                        text = "Long-press a heading to copy its link",
+                        text = stringResource(R.string.toc_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp),
@@ -62,7 +64,7 @@ fun TocDrawer(
             if (headings.isEmpty()) {
                 item(key = "contents-empty") {
                     Text(
-                        text = "This document has no headings",
+                        text = stringResource(R.string.toc_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(24.dp),
@@ -105,19 +107,19 @@ fun TocDrawer(
                         .padding(start = 24.dp, end = 12.dp, top = 8.dp),
                 ) {
                     Text(
-                        text = "Bookmarks",
+                        text = stringResource(R.string.bookmarks_title),
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = onAddBookmark) {
-                        Icon(Icons.Default.BookmarkAdd, contentDescription = "Bookmark current position")
+                        Icon(Icons.Default.BookmarkAdd, contentDescription = stringResource(R.string.cd_bookmark_here))
                     }
                 }
             }
             if (bookmarks.isEmpty()) {
                 item(key = "bookmarks-empty") {
                     Text(
-                        text = "Tap the bookmark button to save your place",
+                        text = stringResource(R.string.bookmarks_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
@@ -134,10 +136,10 @@ fun TocDrawer(
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         },
-                        supportingContent = { Text("${bookmark.permille / 10}% through") },
+                        supportingContent = { Text(stringResource(R.string.bookmark_progress, bookmark.permille / 10)) },
                         trailingContent = {
                             IconButton(onClick = { onRemoveBookmark(bookmark) }) {
-                                Icon(Icons.Default.Close, contentDescription = "Remove bookmark")
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_remove_bookmark))
                             }
                         },
                         modifier = Modifier.clickable { onSelectBookmark(bookmark) },

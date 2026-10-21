@@ -1,5 +1,7 @@
 package com.readmd.app.ui.reader
 
+import com.readmd.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -44,13 +46,13 @@ fun FrontMatterHeader(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 Text(
-                    text = "Metadata (${entries.size})",
+                    text = stringResource(R.string.metadata_title, entries.size),
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f),
                 )
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "Hide metadata" else "Show metadata",
+                    contentDescription = stringResource(if (expanded) R.string.cd_hide_metadata else R.string.cd_show_metadata),
                 )
             }
             if (expanded) {

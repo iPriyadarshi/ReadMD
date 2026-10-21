@@ -1,10 +1,13 @@
 package com.readmd.app.domain
 
+import androidx.annotation.StringRes
+import com.readmd.app.R
+
 /** Body font family choices for the rendered reader view. */
-enum class ReaderFont(val id: String, val label: String) {
-    SANS("sans", "Sans-serif"),
-    SERIF("serif", "Serif"),
-    MONO("mono", "Monospace");
+enum class ReaderFont(val id: String, @StringRes val labelRes: Int) {
+    SANS("sans", R.string.font_sans),
+    SERIF("serif", R.string.font_serif),
+    MONO("mono", R.string.font_mono);
 
     companion object {
         val DEFAULT = SANS

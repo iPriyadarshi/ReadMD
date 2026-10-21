@@ -1,5 +1,7 @@
 package com.readmd.app.ui.reader
 
+import com.readmd.app.R
+import androidx.compose.ui.res.stringResource
 import android.annotation.SuppressLint
 import android.webkit.WebView
 import androidx.compose.foundation.layout.Column
@@ -45,10 +47,10 @@ fun MermaidDialog(source: String, onDismiss: () -> Unit) {
         Surface(modifier = Modifier.fillMaxSize(), color = colors.background) {
             Column(Modifier.fillMaxSize()) {
                 TopAppBar(
-                    title = { Text("Diagram") },
+                    title = { Text(stringResource(R.string.diagram_title)) },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close diagram")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_close_diagram))
                         }
                     },
                 )

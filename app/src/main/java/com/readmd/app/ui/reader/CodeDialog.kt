@@ -1,5 +1,7 @@
 package com.readmd.app.ui.reader
 
+import com.readmd.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,15 +46,15 @@ fun CodeDialog(code: String, onCopy: () -> Unit, onDismiss: () -> Unit) {
         Surface(modifier = Modifier.fillMaxSize(), color = colors.background) {
             Column(Modifier.fillMaxSize()) {
                 TopAppBar(
-                    title = { Text("Code") },
+                    title = { Text(stringResource(R.string.code_dialog_title)) },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close code")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_close_code))
                         }
                     },
                     actions = {
                         IconButton(onClick = onCopy) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy code")
+                            Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.cd_copy_code))
                         }
                     },
                 )

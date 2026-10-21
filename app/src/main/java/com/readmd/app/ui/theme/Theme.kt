@@ -13,14 +13,16 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import android.os.Build
+import androidx.annotation.StringRes
+import com.readmd.app.R
 
 /** Persisted by ordinal: append new modes at the end so saved values keep their meaning. */
-enum class ThemeMode(val label: String) {
-    SYSTEM("System default"),
-    LIGHT("Light"),
-    DARK("Dark"),
-    SEPIA("Sepia"),
-    BLACK("True black");
+enum class ThemeMode(@StringRes val labelRes: Int) {
+    SYSTEM(R.string.theme_system),
+    LIGHT(R.string.theme_light),
+    DARK(R.string.theme_dark),
+    SEPIA(R.string.theme_sepia),
+    BLACK(R.string.theme_black);
 
     companion object {
         fun fromOrdinal(value: Int): ThemeMode =

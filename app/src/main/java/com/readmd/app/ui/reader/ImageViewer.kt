@@ -1,5 +1,7 @@
 package com.readmd.app.ui.reader
 
+import com.readmd.app.R
+import androidx.compose.ui.res.stringResource
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -70,7 +72,7 @@ fun ImageViewerDialog(source: String, onDismiss: () -> Unit) {
             when {
                 image != null -> ZoomableImage(image, ImageNames.displayName(source))
                 failed -> Text(
-                    text = "Couldn't open ${ImageNames.displayName(source)}",
+                    text = stringResource(R.string.image_open_failed, ImageNames.displayName(source)),
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.align(Alignment.Center),
@@ -83,7 +85,7 @@ fun ImageViewerDialog(source: String, onDismiss: () -> Unit) {
                     .align(Alignment.TopEnd)
                     .padding(8.dp),
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Close image", tint = Color.White)
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_close_image), tint = Color.White)
             }
         }
     }

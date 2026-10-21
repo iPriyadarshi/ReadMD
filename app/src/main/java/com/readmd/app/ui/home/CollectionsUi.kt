@@ -1,5 +1,7 @@
 package com.readmd.app.ui.home
 
+import com.readmd.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -57,7 +59,7 @@ fun CollectionChips(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         item(key = "all") {
-            ChipBox(label = "All", selected = selectedId == null, onClick = { onSelect(null) })
+            ChipBox(label = stringResource(R.string.chip_all), selected = selectedId == null, onClick = { onSelect(null) })
         }
         items(collections, key = { it.id }) { collection ->
             var menuOpen by remember { mutableStateOf(false) }
@@ -70,11 +72,11 @@ fun CollectionChips(
                 )
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
-                        text = { Text("Rename") },
+                        text = { Text(stringResource(R.string.action_rename)) },
                         onClick = { menuOpen = false; onRename(collection) },
                     )
                     DropdownMenuItem(
-                        text = { Text("Delete") },
+                        text = { Text(stringResource(R.string.action_delete)) },
                         onClick = { menuOpen = false; onDelete(collection) },
                     )
                 }
@@ -89,7 +91,7 @@ fun CollectionChips(
                     .padding(horizontal = 10.dp, vertical = 8.dp),
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                Text("New collection", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.new_collection), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -132,8 +134,8 @@ fun CollectionNameDialog(
     val name = Collections.normalizeName(text)
     val error = when {
         text.isEmpty() -> null
-        name.isEmpty() -> "Enter a name"
-        Collections.nameTaken(collections, name, exceptId) -> "A collection with this name already exists"
+        name.isEmpty() -> stringResource(R.string.collection_name_required)
+        Collections.nameTaken(collections, name, exceptId) -> stringResource(R.string.collection_name_taken)
         else -> null
     }
     val valid = name.isNotEmpty() && error == null
@@ -145,7 +147,7 @@ fun CollectionNameDialog(
                 value = text,
                 onValueChange = { text = it },
                 singleLine = true,
-                label = { Text("Name") },
+                label = { Text(stringResource(R.string.label_name)) },
                 isError = error != null,
                 supportingText = { if (error != null) Text(error) },
                 modifier = Modifier.fillMaxWidth(),
@@ -154,7 +156,7 @@ fun CollectionNameDialog(
         confirmButton = {
             TextButton(onClick = { onConfirm(name) }, enabled = valid) { Text(confirmLabel) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 
@@ -166,10 +168,10 @@ fun DeleteCollectionDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete \"${collection.name}\"?") },
-        text = { Text("The collection is removed. Your files are not deleted.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Delete") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        title = { Text(stringResource(R.string.delete_collection_title, collection.name)) },
+        text = { Text(stringResource(R.string.delete_collection_message)) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.action_delete)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 
@@ -185,7 +187,7 @@ fun AssignCollectionsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Collections", maxLines = 1) },
+        title = { Text(stringResource(R.string.assign_collections_title), maxLines = 1) },
         text = {
             Column {
                 Text(
@@ -196,7 +198,7 @@ fun AssignCollectionsDialog(
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
                 if (collections.isEmpty()) {
-                    Text("No collections yet", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.no_collections), style = MaterialTheme.typography.bodyMedium)
                 }
                 collections.forEach { collection ->
                     val member = collection.id in memberOf
@@ -210,10 +212,10 @@ fun AssignCollectionsDialog(
                 }
                 TextButton(onClick = onCreate) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                    Text("New collection")
+                    Text(stringResource(R.string.new_collection))
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_done)) } },
     )
 }

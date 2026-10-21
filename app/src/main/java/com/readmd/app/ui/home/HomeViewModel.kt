@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.readmd.app.R
 import com.readmd.app.ReadMdApp
 import com.readmd.app.data.FolderEntry
 import com.readmd.app.data.FolderSort
@@ -103,7 +104,7 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
             recents = recents,
             folder = (scannedFolder
                 ?: folderUri?.let {
-                    FolderUiState(treeUri = it, label = "Selected folder", scanning = true)
+                    FolderUiState(treeUri = it, label = container.appContext.getString(R.string.selected_folder), scanning = true)
                 })?.copy(entries = sort.apply(scannedFolder?.entries.orEmpty())),
             folderSort = sort,
             themeMode = ThemeMode.fromOrdinal(themeOrdinal),
@@ -111,8 +112,8 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
     val samples = listOf(
-        SampleDoc("res:welcome", "Welcome to ReadMD"),
-        SampleDoc("res:cheatsheet", "Markdown Cheatsheet"),
+        SampleDoc("res:welcome", container.appContext.getString(R.string.sample_welcome)),
+        SampleDoc("res:cheatsheet", container.appContext.getString(R.string.sample_cheatsheet)),
     )
 
     init {
@@ -217,7 +218,7 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     private suspend fun rescanFolder(uri: Uri) {
-        val label = runCatching { container.folderScanner.treeLabel(uri) }.getOrDefault("Selected folder")
+        val label = runCatching { container.folderScanner.treeLabel(uri) }.getOrDefault(container.appContext.getString(R.string.selected_folder))
         folderState.update { FolderUiState(treeUri = uri.toString(), label = label, scanning = true) }
         val result = container.folderScanner.listMarkdown(uri)
         folderState.update {
