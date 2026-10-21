@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.SwapVert
@@ -50,6 +51,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -80,10 +82,13 @@ private val markdownMimeTypes = arrayOf(
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onOpenDoc: (String) -> Unit,
+    /** Opens a document; [query] is non-null when opened from a folder search result. */
+    onOpenDoc: (id: String, query: String?) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
     val accent by viewModel.accent.collectAsState()
+    val search by viewModel.search.collectAsState()
+    var folderSearchOpen by remember { mutableStateOf(false) }
     val favorites by viewModel.favorites.collectAsState()
     val favoriteIds = remember(favorites) { favorites.mapTo(HashSet()) { it.id } }
 
@@ -92,7 +97,7 @@ fun HomeScreen(
     ) { uri: Uri? ->
         if (uri != null) {
             viewModel.onFilePicked(uri)
-            onOpenDoc(uri.toString())
+            onOpenDoc(uri.toString(), null)
         }
     }
     val folderPicker = rememberLauncherForActivityResult(
@@ -221,6 +226,14 @@ fun HomeScreen(
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f),
                             )
+                            IconButton(
+                                onClick = {
+                                    folderSearchOpen = !folderSearchOpen
+                                    if (!folderSearchOpen) viewModel.clearSearch()
+                                },
+                            ) {
+                                Icon(Icons.Default.Search, contentDescription = "Search in folder")
+                            }
                             IconButton(onClick = { sortMenuOpen = true }) {
                                 Icon(Icons.Default.SwapVert, contentDescription = "Sort files")
                             }
@@ -281,21 +294,78 @@ fun HomeScreen(
                         }
                     }
                 }
-                if (!folder.scanning && folder.entries.isEmpty()) {
-                    item {
-                        Text(
-                            "No markdown files in this folder",
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                val showingResults = folderSearchOpen && search.active
+                if (folderSearchOpen) {
+                    item(key = "folder-search-field") {
+                        OutlinedTextField(
+                            value = search.query,
+                            onValueChange = viewModel::setSearchQuery,
+                            placeholder = { Text("Search file contents") },
+                            singleLine = true,
+                            trailingIcon = {
+                                if (search.query.isNotEmpty()) {
+                                    IconButton(onClick = viewModel::clearSearch) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
                         )
+                        if (search.searching) {
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                            )
+                        }
                     }
                 }
-                items(folder.entries, key = { "folder-${it.id}" }) { entry ->
-                    ListItem(
-                        headlineContent = { Text(entry.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        modifier = Modifier.clickable { onOpenDoc(entry.id) },
-                    )
+                if (showingResults) {
+                    if (!search.searching && search.hits.isEmpty()) {
+                        item(key = "folder-search-empty") {
+                            Text(
+                                "No matches",
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    items(search.hits, key = { "hit-${it.id}" }) { hit ->
+                        ListItem(
+                            headlineContent = { Text(hit.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            supportingContent = {
+                                Text(hit.match.snippet, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            },
+                            trailingContent = {
+                                Text(
+                                    text = hit.match.count.toString(),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
+                            modifier = Modifier.clickable { onOpenDoc(hit.id, search.query.trim()) },
+                        )
+                    }
+                } else {
+                    if (!folder.scanning && folder.entries.isEmpty()) {
+                        item {
+                            Text(
+                                "No markdown files in this folder",
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    items(folder.entries, key = { "folder-${it.id}" }) { entry ->
+                        ListItem(
+                            headlineContent = { Text(entry.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            modifier = Modifier.clickable { onOpenDoc(entry.id, null) },
+                        )
+                    }
                 }
             }
 
@@ -318,7 +388,7 @@ fun HomeScreen(
                                 Icon(Icons.Default.Close, contentDescription = "Remove from favorites")
                             }
                         },
-                        modifier = Modifier.clickable { onOpenDoc(favorite.id) },
+                        modifier = Modifier.clickable { onOpenDoc(favorite.id, null) },
                     )
                 }
             }
@@ -368,7 +438,7 @@ fun HomeScreen(
                             }
                         }
                     },
-                    modifier = Modifier.clickable { onOpenDoc(recent.id) },
+                    modifier = Modifier.clickable { onOpenDoc(recent.id, null) },
                 )
             }
 
@@ -385,7 +455,7 @@ fun HomeScreen(
                 ListItem(
                     headlineContent = { Text(sample.name) },
                     leadingContent = { Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null) },
-                    modifier = Modifier.clickable { onOpenDoc(sample.id) },
+                    modifier = Modifier.clickable { onOpenDoc(sample.id, null) },
                 )
             }
         }

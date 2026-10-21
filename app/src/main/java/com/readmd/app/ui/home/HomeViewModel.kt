@@ -9,13 +9,19 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.readmd.app.ReadMdApp
 import com.readmd.app.data.FolderEntry
 import com.readmd.app.data.FolderSort
+import com.readmd.app.data.SearchHit
 import com.readmd.app.data.recent.RecentEntry
 import com.readmd.app.di.AppContainer
+import com.readmd.app.domain.TextSearch
 import com.readmd.app.ui.theme.AccentColor
 import com.readmd.app.ui.theme.ThemeMode
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -45,7 +51,40 @@ data class HomeUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
 )
 
+/** State of a content search inside the picked folder. */
+data class FolderSearchState(
+    val query: String = "",
+    val searching: Boolean = false,
+    val hits: List<SearchHit> = emptyList(),
+) {
+    val active: Boolean get() = query.length >= TextSearch.MIN_QUERY_LENGTH
+}
+
 class HomeViewModel(private val container: AppContainer) : ViewModel() {
+
+    private val _search = MutableStateFlow(FolderSearchState())
+    val search = _search.asStateFlow()
+    private var searchJob: Job? = null
+
+    /** Debounced, cancellable content search over the scanned folder entries. */
+    fun setSearchQuery(query: String) {
+        searchJob?.cancel()
+        _search.value = FolderSearchState(query = query)
+        if (query.trim().length < TextSearch.MIN_QUERY_LENGTH) return
+        val entries = folderState.value?.entries.orEmpty()
+        searchJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE_MS)
+            _search.update { it.copy(searching = true) }
+            container.folderSearcher.search(entries, query.trim())
+                .onCompletion { _search.update { it.copy(searching = false) } }
+                .collect { hit -> _search.update { it.copy(hits = it.hits + hit) } }
+        }
+    }
+
+    fun clearSearch() {
+        searchJob?.cancel()
+        _search.value = FolderSearchState()
+    }
 
     private val folderState = MutableStateFlow<FolderUiState?>(null)
 
@@ -157,6 +196,8 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     companion object {
+        private const val SEARCH_DEBOUNCE_MS = 300L
+
         fun factory(): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as ReadMdApp
