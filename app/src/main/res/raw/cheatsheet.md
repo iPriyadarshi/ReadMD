@@ -103,6 +103,11 @@ $$
 
 Formulas that can't be parsed show their source instead.
 
+## Emoji
+
+Common GitHub shortcodes turn into emoji: :tada: :rocket: :+1: :sparkles:.
+Unknown codes such as :not_an_emoji: and anything in `code` stay as written.
+
 ## Footnotes
 
 Add a footnote marker like this[^note] and define it anywhere in the

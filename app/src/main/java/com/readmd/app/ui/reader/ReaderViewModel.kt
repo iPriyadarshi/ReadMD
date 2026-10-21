@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.readmd.app.ReadMdApp
 import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.Bookmark
+import com.readmd.app.domain.EmojiShortcodes
 import com.readmd.app.domain.Footnotes
 import com.readmd.app.domain.FrontMatter
 import com.readmd.app.domain.FrontMatterEntry
@@ -209,7 +210,9 @@ class ReaderViewModel(
                 // Front matter is shown in its own header; everything else (outline, word
                 // count, rendering) works on the body so the YAML never leaks into them.
                 val split = FrontMatter.split(doc.text)
-                val prepared = MermaidBlocks.prepare(Footnotes.prepare(split.body))
+                // Shortcodes become emoji first so the outline and rendering agree on heading text.
+                val body = EmojiShortcodes.prepare(split.body)
+                val prepared = MermaidBlocks.prepare(Footnotes.prepare(body))
                 _state.update {
                     it.copy(
                         loading = false,
@@ -217,7 +220,7 @@ class ReaderViewModel(
                         markdown = doc.text,
                         renderedMarkdown = MathMarkup.prepare(prepared.markdown),
                         diagrams = prepared.diagrams,
-                        headings = MarkdownOutlineParser.parse(split.body),
+                        headings = MarkdownOutlineParser.parse(body),
                         wordCount = ReadingTime.wordCount(split.body),
                         frontMatter = FrontMatter.entries(split.yaml),
                     )
