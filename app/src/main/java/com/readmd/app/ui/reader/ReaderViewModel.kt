@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.readmd.app.ReadMdApp
 import com.readmd.app.di.AppContainer
 import com.readmd.app.domain.Bookmark
+import com.readmd.app.domain.CodeWrap
 import com.readmd.app.domain.EmojiShortcodes
 import com.readmd.app.domain.Footnotes
 import com.readmd.app.domain.FrontMatter
@@ -50,6 +51,7 @@ data class ReaderUiState(
     val pageMargin: PageMargin = PageMargin.DEFAULT,
     val wordCount: Int = 0,
     val keepScreenOn: Boolean = false,
+    val codeWrap: CodeWrap = CodeWrap.DEFAULT,
     val isFavorite: Boolean = false,
     val bookmarks: List<Bookmark> = emptyList(),
 )
@@ -97,6 +99,11 @@ class ReaderViewModel(
             }
         }
         viewModelScope.launch {
+            container.recentFiles.codeWrap.collect { wrap ->
+                _state.update { it.copy(codeWrap = wrap) }
+            }
+        }
+        viewModelScope.launch {
             container.recentFiles.keepScreenOn.collect { enabled ->
                 _state.update { it.copy(keepScreenOn = enabled) }
             }
@@ -132,6 +139,10 @@ class ReaderViewModel(
                 container.recentFiles.addFavorite(docId, current.title.ifEmpty { docId })
             }
         }
+    }
+
+    fun setCodeWrap(wrap: CodeWrap) {
+        viewModelScope.launch { container.recentFiles.setCodeWrap(wrap) }
     }
 
     fun setKeepScreenOn(enabled: Boolean) {
