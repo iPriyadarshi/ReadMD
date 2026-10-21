@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.FormatSize
@@ -32,6 +33,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -67,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.readmd.app.ReadMdApp
 import com.readmd.app.domain.HeadingNode
+import com.readmd.app.domain.ReaderFont
 import com.readmd.app.domain.TextScale
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -255,7 +258,7 @@ fun ReaderScreen(
                             }
                             Box {
                                 IconButton(onClick = { textSizeMenuOpen = true }) {
-                                    Icon(Icons.Default.FormatSize, contentDescription = "Text size")
+                                    Icon(Icons.Default.FormatSize, contentDescription = "Text settings")
                                 }
                                 DropdownMenu(
                                     expanded = textSizeMenuOpen,
@@ -289,6 +292,18 @@ fun ReaderScreen(
                                         onClick = { viewModel.resetTextScale() },
                                         enabled = state.textScale != TextScale.DEFAULT,
                                     )
+                                    HorizontalDivider()
+                                    ReaderFont.entries.forEach { font ->
+                                        DropdownMenuItem(
+                                            text = { Text(font.label) },
+                                            onClick = { viewModel.setFont(font) },
+                                            leadingIcon = {
+                                                if (font == state.font) {
+                                                    Icon(Icons.Default.Check, contentDescription = "Selected")
+                                                }
+                                            },
+                                        )
+                                    }
                                 }
                             }
                             IconButton(onClick = {
@@ -366,6 +381,7 @@ fun ReaderScreen(
                                     controller = controller,
                                     contentColor = MaterialTheme.colorScheme.onSurface,
                                     textScale = state.textScale,
+                                    font = state.font,
                                 )
                             }
                         }

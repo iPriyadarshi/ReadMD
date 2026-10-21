@@ -1,5 +1,6 @@
 package com.readmd.app.ui.reader
 
+import android.graphics.Typeface
 import android.text.Spannable
 import android.text.Spanned
 import android.text.style.BackgroundColorSpan
@@ -8,6 +9,7 @@ import android.widget.TextView
 import io.noties.markwon.Markwon
 import io.noties.markwon.core.spans.HeadingSpan
 import com.readmd.app.domain.HeadingNode
+import com.readmd.app.domain.ReaderFont
 
 private class SearchSpan(color: Int) : BackgroundColorSpan(color)
 
@@ -27,6 +29,8 @@ class ReaderTextController {
 
     private var appliedScale = -1
 
+    private var appliedFont: ReaderFont? = null
+
     /** Scroll offset (px) for each heading index; null when unlocatable. */
     private var headingY: List<Float?> = emptyList()
 
@@ -37,6 +41,7 @@ class ReaderTextController {
         if (textView !== tv) {
             textView = tv
             appliedScale = -1
+            appliedFont = null
             tv.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
                 refreshHeadingOffsets()
             }
@@ -58,6 +63,18 @@ class ReaderTextController {
 
     fun applyTextColor(textColor: Int) {
         textView?.setTextColor(textColor)
+    }
+
+    /** Sets the body font; inline code and code blocks keep their own monospace spans. */
+    fun applyFont(font: ReaderFont) {
+        val tv = textView ?: return
+        if (font == appliedFont) return
+        appliedFont = font
+        tv.typeface = when (font) {
+            ReaderFont.SANS -> Typeface.SANS_SERIF
+            ReaderFont.SERIF -> Typeface.SERIF
+            ReaderFont.MONO -> Typeface.MONOSPACE
+        }
     }
 
     /** Scales body text to [percent] of the default size; heading and code sizes follow. */

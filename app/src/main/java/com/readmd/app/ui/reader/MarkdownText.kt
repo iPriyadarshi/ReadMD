@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.readmd.app.domain.HeadingNode
+import com.readmd.app.domain.ReaderFont
 
 /**
  * Renders markdown into a single TextView via Markwon (full markdown
@@ -27,6 +28,7 @@ fun MarkdownText(
     controller: ReaderTextController,
     contentColor: Color,
     textScale: Int,
+    font: ReaderFont,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -58,5 +60,6 @@ fun MarkdownText(
     SideEffect {
         controller.applyTextColor(contentColor.toArgb())
         controller.applyTextScale(textScale)
+        controller.applyFont(font)
     }
 }
