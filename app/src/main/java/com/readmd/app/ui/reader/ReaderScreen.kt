@@ -31,6 +31,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -323,6 +325,12 @@ fun ReaderScreen(
                                         contentDescription = "Table of contents",
                                     )
                                 }
+                            }
+                            IconButton(onClick = viewModel::toggleFavorite) {
+                                Icon(
+                                    imageVector = if (state.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                                    contentDescription = if (state.isFavorite) "Remove from favorites" else "Add to favorites",
+                                )
                             }
                             Box {
                                 IconButton(onClick = { textSizeMenuOpen = true }) {

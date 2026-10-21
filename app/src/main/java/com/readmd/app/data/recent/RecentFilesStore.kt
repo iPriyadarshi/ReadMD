@@ -7,6 +7,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.readmd.app.domain.FavoriteEntry
+import com.readmd.app.domain.Favorites
 import com.readmd.app.domain.LineSpacing
 import com.readmd.app.domain.PageMargin
 import com.readmd.app.domain.ReaderFont
@@ -69,6 +71,9 @@ class RecentFilesStore(private val context: Context) {
     val pageMargin: Flow<PageMargin> =
         dataStore.data.map { PageMargin.fromId(it[KEY_PAGE_MARGIN]) }
 
+    val favorites: Flow<List<FavoriteEntry>> =
+        dataStore.data.map { Favorites.parse(it[KEY_FAVORITES].orEmpty()) }
+
     val keepScreenOn: Flow<Boolean> = dataStore.data.map { it[KEY_KEEP_SCREEN_ON] ?: false }
 
     val accent: Flow<AccentColor> = dataStore.data.map { AccentColor.fromId(it[KEY_ACCENT]) }
@@ -100,6 +105,19 @@ class RecentFilesStore(private val context: Context) {
 
     suspend fun setFolderSort(sortId: String) {
         dataStore.edit { it[KEY_FOLDER_SORT] = sortId }
+    }
+
+    suspend fun addFavorite(id: String, name: String) {
+        dataStore.edit { prefs ->
+            prefs[KEY_FAVORITES] =
+                Favorites.add(prefs[KEY_FAVORITES].orEmpty(), id, name, System.currentTimeMillis())
+        }
+    }
+
+    suspend fun removeFavorite(id: String) {
+        dataStore.edit { prefs ->
+            prefs[KEY_FAVORITES] = Favorites.remove(prefs[KEY_FAVORITES].orEmpty(), id)
+        }
     }
 
     suspend fun setKeepScreenOn(enabled: Boolean) {
@@ -152,6 +170,7 @@ class RecentFilesStore(private val context: Context) {
         private val KEY_THEME = intPreferencesKey("theme_mode")
         private val KEY_ACCENT = stringPreferencesKey("accent_color")
         private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
+        private val KEY_FAVORITES = stringSetPreferencesKey("favorite_files")
         private val KEY_TEXT_SCALE = intPreferencesKey("reader_text_scale")
         private val KEY_READER_FONT = stringPreferencesKey("reader_font")
         private val KEY_LINE_SPACING = stringPreferencesKey("reader_line_spacing")
