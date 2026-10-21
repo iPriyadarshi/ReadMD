@@ -1,6 +1,7 @@
 package com.readmd.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -16,7 +17,8 @@ enum class ThemeMode(val label: String) {
     SYSTEM("System default"),
     LIGHT("Light"),
     DARK("Dark"),
-    SEPIA("Sepia");
+    SEPIA("Sepia"),
+    BLACK("True black");
 
     companion object {
         fun fromOrdinal(value: Int): ThemeMode =
@@ -65,6 +67,17 @@ private val SepiaColors = lightColorScheme(
     outlineVariant = Color(0xFFD3C4A5),
 )
 
+// Pure-black backgrounds for OLED screens; accents come from the underlying dark scheme.
+private fun ColorScheme.toTrueBlack() = copy(
+    background = Color.Black,
+    surface = Color.Black,
+    surfaceContainerLowest = Color.Black,
+    surfaceContainerLow = Color(0xFF0A0A0A),
+    surfaceContainer = Color(0xFF101010),
+    surfaceContainerHigh = Color(0xFF161616),
+    surfaceContainerHighest = Color(0xFF1C1C1C),
+)
+
 @Composable
 fun ReadMdTheme(
     themeMode: ThemeMode,
@@ -73,12 +86,13 @@ fun ReadMdTheme(
     val dark = when (themeMode) {
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
         ThemeMode.LIGHT, ThemeMode.SEPIA -> false
-        ThemeMode.DARK -> true
+        ThemeMode.DARK, ThemeMode.BLACK -> true
     }
     val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val context = LocalContext.current
     val colorScheme = when {
         themeMode == ThemeMode.SEPIA -> SepiaColors
+        themeMode == ThemeMode.BLACK -> (if (dynamicColor) dynamicDarkColorScheme(context) else DarkColors).toTrueBlack()
         dark && dynamicColor -> dynamicDarkColorScheme(context)
         !dark && dynamicColor -> dynamicLightColorScheme(context)
         dark -> DarkColors
