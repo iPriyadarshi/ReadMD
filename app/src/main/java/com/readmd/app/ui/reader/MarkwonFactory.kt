@@ -1,6 +1,7 @@
 package com.readmd.app.ui.reader
 
 import android.content.Context
+import com.readmd.app.domain.ImageNames
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
 import io.noties.markwon.MarkwonConfiguration
@@ -25,12 +26,14 @@ import io.noties.prism4j.Prism4j
  * relative markdown links itself and hand everything else to the system.
  * @param mathTextSizePx text size for rendered formulas, matching the body text.
  * @param mathColor color for rendered formulas, matching the body text.
+ * @param docId the open document; relative image paths are resolved against its folder.
  */
 fun buildMarkwon(
     context: Context,
     dark: Boolean,
     mathTextSizePx: Float,
     mathColor: Int,
+    docId: String,
     onLinkClick: (String) -> Unit,
 ): Markwon {
     val highlightTheme = if (dark) {
@@ -42,11 +45,20 @@ fun buildMarkwon(
         .usePlugin(
             ImagesPlugin.create()
                 .addSchemeHandler(ContentSchemeHandler(context))
-                .addSchemeHandler(NetworkSchemeHandler.create()),
+                .addSchemeHandler(NetworkSchemeHandler.create())
+                // Images that can't be loaded (missing file, no network) leave a named box.
+                .errorHandler { url, _ ->
+                    ImagePlaceholderDrawable(
+                        label = "Image not available: ${ImageNames.displayName(url)}",
+                        textSizePx = mathTextSizePx * 0.85f,
+                        color = mathColor,
+                    )
+                },
         )
         .usePlugin(object : AbstractMarkwonPlugin() {
             override fun configureConfiguration(builder: MarkwonConfiguration.Builder) {
                 builder.linkResolver { _, link -> onLinkClick(link) }
+                builder.imageDestinationProcessor(FolderImageDestinationProcessor(docId))
             }
         })
         .usePlugin(CalloutPlugin(dark, context.resources.displayMetrics.density))
